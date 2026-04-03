@@ -231,7 +231,7 @@ export type Database = {
           name: string
           brief_text: string | null
           brief_summary: string | null
-          status: 'draft' | 'active' | 'archived'
+          status: 'draft' | 'active' | 'archived' | 'done' | 'deleted'
           created_at: string
           updated_at: string
         }
@@ -241,7 +241,7 @@ export type Database = {
           name: string
           brief_text?: string | null
           brief_summary?: string | null
-          status?: 'draft' | 'active' | 'archived'
+          status?: 'draft' | 'active' | 'archived' | 'done' | 'deleted'
           created_at?: string
           updated_at?: string
         }
@@ -251,7 +251,7 @@ export type Database = {
           name?: string
           brief_text?: string | null
           brief_summary?: string | null
-          status?: 'draft' | 'active' | 'archived'
+          status?: 'draft' | 'active' | 'archived' | 'done' | 'deleted'
           created_at?: string
           updated_at?: string
         }

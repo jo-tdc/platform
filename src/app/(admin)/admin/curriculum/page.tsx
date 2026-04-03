@@ -272,7 +272,7 @@ function LessonForm({ moduleId, initial, position, onSave, onCancel, loading }: 
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? false)
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave({ module_id: moduleId, title, type, content_url: contentUrl || null, content_body: null, estimated_minutes: estimatedMinutes ? Number(estimatedMinutes) : null, position: pos, is_published: isPublished }) }} className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); onSave({ module_id: moduleId, title, type, content_url: contentUrl || null, estimated_minutes: estimatedMinutes ? Number(estimatedMinutes) : null, position: pos, is_published: isPublished, content_body: null }) }} className="space-y-4">
       <Field label="Titre" required>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="Introduction au design thinking" />
       </Field>

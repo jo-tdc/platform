@@ -34,10 +34,11 @@ export async function GET() {
   const planMap = new Map(
     (plans ?? []).map((p) => [p.user_id, p])
   )
+  type MemberRow = { user_id: string; cohort_id: string; cohorts: { name: string } | null }
   const cohortMap = new Map(
-    (members ?? []).map((m) => [
+    ((members ?? []) as unknown as MemberRow[]).map((m) => [
       m.user_id,
-      { cohort_id: m.cohort_id, cohort_name: (m.cohorts as { name: string } | null)?.name ?? null },
+      { cohort_id: m.cohort_id, cohort_name: m.cohorts?.name ?? null },
     ])
   )
 
