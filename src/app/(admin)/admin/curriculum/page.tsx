@@ -260,7 +260,7 @@ function LessonForm({ moduleId, initial, position, onSave, onCancel, loading }: 
   moduleId: string
   initial?: Partial<Lesson>
   position: number
-  onSave: (data: Omit<Lesson, 'id' | 'content_body'>) => void
+  onSave: (data: Omit<Lesson, 'id'>) => void
   onCancel: () => void
   loading: boolean
 }) {
@@ -409,7 +409,7 @@ export default function AdminCurriculumPage() {
 
   // ── Lesson CRUD ──
 
-  async function handleCreateLesson(data: Omit<Lesson, 'id' | 'content_body'>) {
+  async function handleCreateLesson(data: Omit<Lesson, 'id'>) {
     setLoading(true)
     const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
     if (res.ok) { const { lesson } = await res.json(); setLessons((p) => [...p, lesson].sort((a, b) => a.position - b.position)) }
