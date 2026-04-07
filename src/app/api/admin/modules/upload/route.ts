@@ -49,7 +49,8 @@ export async function POST(request: Request) {
   const { data: urlData } = service.storage.from('module-assets').getPublicUrl(path)
 
   return Response.json({
-    signedUrl: data.signedUrl,
+    token: data.token,
+    path,
     publicUrl: urlData.publicUrl,
     asset_type: assetType,
   })

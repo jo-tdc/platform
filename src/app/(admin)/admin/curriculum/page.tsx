@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -247,13 +248,12 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
     const presignData = await presignRes.json()
     if (!presignRes.ok) return null
 
-    const uploadRes = await fetch(presignData.signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    })
-    if (!uploadRes.ok) return null
+    const supabase = createClient()
+    const { error } = await supabase.storage
+      .from('module-assets')
+      .uploadToSignedUrl(presignData.path, presignData.token, file, { contentType: file.type })
 
+    if (error) return null
     return presignData.publicUrl
   }
 
@@ -303,13 +303,13 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
       return
     }
 
-    const uploadRes = await fetch(presignData.signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    })
-    if (!uploadRes.ok) {
-      setUploadError('Erreur lors de l\'upload vers le stockage')
+    const supabase = createClient()
+    const { error: uploadError } = await supabase.storage
+      .from('module-assets')
+      .uploadToSignedUrl(presignData.path, presignData.token, file, { contentType: file.type })
+
+    if (uploadError) {
+      setUploadError(`Erreur upload : ${uploadError.message}`)
       setUploading(false)
       return
     }
