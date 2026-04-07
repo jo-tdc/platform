@@ -309,6 +309,7 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
       .uploadToSignedUrl(presignData.path, presignData.token, file, { contentType: file.type })
 
     if (uploadError) {
+      console.error('[upload] Supabase Storage error:', uploadError)
       setUploadError(`Erreur upload : ${uploadError.message}`)
       setUploading(false)
       return
