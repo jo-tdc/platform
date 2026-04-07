@@ -238,11 +238,59 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
     setFetchingPreview(false)
   }
 
+  async function uploadFileToStorage(file: File): Promise<string | null> {
+    const presignRes = await fetch('/api/admin/modules/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    })
+    const presignData = await presignRes.json()
+    if (!presignRes.ok) return null
+
+    const uploadRes = await fetch(presignData.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    })
+    if (!uploadRes.ok) return null
+
+    return presignData.publicUrl
+  }
+
+  async function extractVideoThumbnail(file: File): Promise<File | null> {
+    return new Promise((resolve) => {
+      const video = document.createElement('video')
+      const objectUrl = URL.createObjectURL(file)
+      video.preload = 'metadata'
+      video.muted = true
+      video.src = objectUrl
+
+      video.addEventListener('loadedmetadata', () => {
+        video.currentTime = Math.min(1, video.duration * 0.1)
+      })
+
+      video.addEventListener('seeked', () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(objectUrl)
+        canvas.toBlob((blob) => {
+          if (blob) resolve(new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' }))
+          else resolve(null)
+        }, 'image/jpeg', 0.85)
+      })
+
+      video.addEventListener('error', () => { URL.revokeObjectURL(objectUrl); resolve(null) })
+    })
+  }
+
   async function handleFileUpload(file: File) {
     setUploading(true)
     setUploadError(null)
 
-    // 1. Demander une URL signée à l'API
+    // 1. Uploader le fichier principal
     const presignRes = await fetch('/api/admin/modules/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -255,7 +303,6 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
       return
     }
 
-    // 2. Uploader directement vers Supabase Storage (sans passer par Vercel)
     const uploadRes = await fetch(presignData.signedUrl, {
       method: 'PUT',
       headers: { 'Content-Type': file.type },
@@ -269,6 +316,16 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
 
     setAssetUrl(presignData.publicUrl)
     setAssetType(presignData.asset_type)
+
+    // 2. Si c'est une vidéo, générer et uploader une preview automatiquement
+    if (presignData.asset_type === 'video') {
+      const thumbFile = await extractVideoThumbnail(file)
+      if (thumbFile) {
+        const thumbUrl = await uploadFileToStorage(thumbFile)
+        if (thumbUrl) setPreviewUrl(thumbUrl)
+      }
+    }
+
     setUploading(false)
   }
 
