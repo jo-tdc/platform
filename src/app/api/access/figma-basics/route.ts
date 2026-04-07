@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -121,10 +122,16 @@ export async function POST(request: Request) {
 
   // 5. Envoyer le magic link par email via Supabase
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://build.thedesigncrew.co'
-  const { error: otpError } = await service.auth.admin.generateLink({
-    type: 'magiclink',
+  const anonClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  const { error: otpError } = await anonClient.auth.signInWithOtp({
     email,
-    options: { redirectTo: `${appUrl}/learn` },
+    options: {
+      emailRedirectTo: `${appUrl}/callback`,
+      shouldCreateUser: false,
+    },
   })
 
   if (otpError) {
