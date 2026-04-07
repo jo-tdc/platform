@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
-export default function StarterPackAccessPage() {
+export default function FigmaBasicsAccessPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -13,6 +14,7 @@ export default function StarterPackAccessPage() {
     setLoading(true)
     setError(null)
 
+    // 1. Créer le compte + assigner starter_pack + notifier HubSpot
     const res = await fetch('/api/access/figma-basics', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -20,10 +22,26 @@ export default function StarterPackAccessPage() {
     })
 
     const data = await res.json()
-    setLoading(false)
-
     if (!res.ok) {
       setError(data.error ?? 'Une erreur est survenue, réessaie.')
+      setLoading(false)
+      return
+    }
+
+    // 2. Envoyer le magic link depuis le navigateur (flux PKCE correct)
+    const supabase = createClient()
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/callback`,
+        shouldCreateUser: false,
+      },
+    })
+
+    setLoading(false)
+
+    if (otpError) {
+      setError(otpError.message)
       return
     }
 
@@ -71,7 +89,7 @@ export default function StarterPackAccessPage() {
                 disabled={loading}
                 className="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
               >
-                {loading ? 'Envoi en cours…' : 'Recevoir mon lien d\'accès'}
+                {loading ? 'Envoi en cours…' : "Recevoir mon lien d'accès"}
               </button>
             </form>
           </>
