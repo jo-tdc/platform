@@ -12,6 +12,7 @@ type Content = {
   title: string
   description: string | null
   is_published: boolean
+  starter_pack_accessible: boolean
 }
 
 type Week = {
@@ -121,9 +122,10 @@ function ContentForm({ initial, onSave, onCancel, loading }: {
   const [description, setDescription] = useState(initial?.description ?? '')
   const [position, setPosition] = useState(initial?.position ?? 1)
   const [isPublished, setIsPublished] = useState(initial?.is_published ?? false)
+  const [starterPackAccessible, setStarterPackAccessible] = useState(initial?.starter_pack_accessible ?? false)
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description: description || null, position, is_published: isPublished }) }} className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description: description || null, position, is_published: isPublished, starter_pack_accessible: starterPackAccessible }) }} className="space-y-4">
       <Field label="Titre" required>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="Programme principal" />
       </Field>
@@ -136,6 +138,10 @@ function ContentForm({ initial, onSave, onCancel, loading }: {
       <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
         <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="rounded" />
         Publier
+      </label>
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" checked={starterPackAccessible} onChange={(e) => setStarterPackAccessible(e.target.checked)} className="rounded" />
+        <span>Accessible Starter Pack <span className="text-xs text-gray-400">(HubSpot)</span></span>
       </label>
       <div className="flex gap-2 pt-2">
         <button type="submit" disabled={loading || !title} className="flex-1 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors">

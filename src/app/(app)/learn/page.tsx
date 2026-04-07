@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { getUserActivePlan, canAccessLearnMode, canAccessModule } from '@/lib/utils/access'
+import { getUserActivePlans, canAccessLearnMode, canAccessModule, canAccessContent } from '@/lib/utils/access'
 import type { PlanType } from '@/lib/utils/types'
 
 type ContentRow = {
@@ -9,6 +9,7 @@ type ContentRow = {
   position: number
   title: string
   description: string | null
+  starter_pack_accessible: boolean
 }
 
 type WeekRow = {
@@ -43,17 +44,20 @@ export default async function LearnPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const plan = await getUserActivePlan(user.id)
-  if (!canAccessLearnMode(plan)) redirect('/dashboard')
+  const plans = await getUserActivePlans(user.id)
+  if (!canAccessLearnMode(plans)) redirect('/dashboard')
+  const plan = plans[0] ?? null
 
   // Charger les contenus publiés
   const contentsResult = await supabase
     .from('contents')
-    .select('id, position, title, description')
+    .select('id, position, title, description, starter_pack_accessible')
     .eq('is_published', true)
     .order('position')
 
-  const contents = contentsResult.data as ContentRow[] | null ?? []
+  const allContents = contentsResult.data as ContentRow[] | null ?? []
+  // Filtrer les contenus selon le plan (starter_pack ne voit que les contenus accessibles)
+  const contents = allContents.filter((c) => canAccessContent(plans, c.starter_pack_accessible))
 
   if (contents.length === 0) {
     return (

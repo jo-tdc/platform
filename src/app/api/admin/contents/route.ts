@@ -7,6 +7,7 @@ const ContentSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   position: z.number().int().min(1),
   is_published: z.boolean().optional(),
+  starter_pack_accessible: z.boolean().optional(),
 })
 
 export async function GET() {
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
   const service = createServiceClient()
   const { data, error } = await service
     .from('contents')
-    .insert({ ...parsed.data, is_published: parsed.data.is_published ?? false })
+    .insert({ ...parsed.data, is_published: parsed.data.is_published ?? false, starter_pack_accessible: parsed.data.starter_pack_accessible ?? false })
     .select()
     .single()
 

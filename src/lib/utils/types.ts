@@ -18,7 +18,7 @@ export type AiMessage = Database['public']['Tables']['ai_messages']['Row']
 export type PlanType = UserPlan['plan']
 
 // Groupes de plans pour les vérifications d'accès
-export const PLANS_LEARN = ['bootcamp', 'free', 'pro', 'editor', 'admin'] as const satisfies PlanType[]
+export const PLANS_LEARN = ['bootcamp', 'free', 'pro', 'editor', 'admin', 'starter_pack'] as const satisfies PlanType[]
 export const PLANS_PRACTICE = ['bootcamp', 'trial', 'pro', 'editor', 'admin'] as const satisfies PlanType[]
 export const PLANS_ADMIN = ['editor', 'admin'] as const satisfies PlanType[]
 

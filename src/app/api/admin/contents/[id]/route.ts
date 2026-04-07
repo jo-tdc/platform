@@ -7,6 +7,7 @@ const ContentUpdateSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   position: z.number().int().min(1).optional(),
   is_published: z.boolean().optional(),
+  starter_pack_accessible: z.boolean().optional(),
 })
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {

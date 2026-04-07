@@ -36,7 +36,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          plan: 'bootcamp' | 'trial' | 'free' | 'pro' | 'editor' | 'admin'
+          plan: 'bootcamp' | 'trial' | 'free' | 'pro' | 'editor' | 'admin' | 'starter_pack'
           started_at: string
           expires_at: string | null
           is_active: boolean
@@ -44,7 +44,7 @@ export type Database = {
         Insert: {
           id?: string
           user_id: string
-          plan: 'bootcamp' | 'trial' | 'free' | 'pro' | 'editor' | 'admin'
+          plan: 'bootcamp' | 'trial' | 'free' | 'pro' | 'editor' | 'admin' | 'starter_pack'
           started_at?: string
           expires_at?: string | null
           is_active?: boolean
@@ -52,7 +52,7 @@ export type Database = {
         Update: {
           id?: string
           user_id?: string
-          plan?: 'bootcamp' | 'trial' | 'free' | 'pro' | 'editor' | 'admin'
+          plan?: 'bootcamp' | 'trial' | 'free' | 'pro' | 'editor' | 'admin' | 'starter_pack'
           started_at?: string
           expires_at?: string | null
           is_active?: boolean
@@ -108,6 +108,7 @@ export type Database = {
           title: string
           description: string | null
           is_published: boolean
+          starter_pack_accessible: boolean
         }
         Insert: {
           id?: string
@@ -115,6 +116,7 @@ export type Database = {
           title: string
           description?: string | null
           is_published?: boolean
+          starter_pack_accessible?: boolean
         }
         Update: {
           id?: string
@@ -122,6 +124,7 @@ export type Database = {
           title?: string
           description?: string | null
           is_published?: boolean
+          starter_pack_accessible?: boolean
         }
         Relationships: []
       }

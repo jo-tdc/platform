@@ -4,11 +4,18 @@ import type { PlanType } from '@/lib/utils/types'
 const PRO_PLANS: PlanType[] = ['pro', 'bootcamp', 'editor', 'admin']
 
 /**
- * Récupère le plan actif d'un utilisateur.
- * À appeler côté serveur uniquement (Route Handler, Server Component).
+ * Récupère le plan actif d'un utilisateur (rétrocompatibilité — retourne le plan le plus élevé).
  */
 export async function getUserActivePlan(userId: string): Promise<PlanType | null> {
-  // Utilise le service client pour bypasser le RLS (pas de policy SELECT sur user_plans)
+  const plans = await getUserActivePlans(userId)
+  return plans[0] ?? null
+}
+
+/**
+ * Récupère tous les plans actifs d'un utilisateur (tags cumulatifs).
+ * Retourne les plans dans l'ordre de priorité décroissante.
+ */
+export async function getUserActivePlans(userId: string): Promise<PlanType[]> {
   const { createServiceClient } = await import('@/lib/supabase/server')
   const supabase = createServiceClient()
 
@@ -17,31 +24,54 @@ export async function getUserActivePlan(userId: string): Promise<PlanType | null
     .select('plan')
     .eq('user_id', userId)
     .eq('is_active', true)
-    .limit(1)
 
   const rows = result.data as Array<{ plan: PlanType }> | null
-  return rows?.[0]?.plan ?? null
+  if (!rows || rows.length === 0) return []
+
+  // Tri par priorité décroissante
+  const priority: Record<PlanType, number> = {
+    admin: 7, editor: 6, bootcamp: 5, pro: 4, trial: 3, free: 2, starter_pack: 1,
+  }
+  return rows.map((r) => r.plan).sort((a, b) => (priority[b] ?? 0) - (priority[a] ?? 0))
 }
 
 /**
- * Vérifie si un plan permet d'accéder à un module selon son `required_plan`.
+ * Vérifie si un plan (ou ensemble de plans) permet d'accéder à un module selon son `required_plan`.
  */
 export function canAccessModule(
-  userPlan: PlanType | null,
+  userPlan: PlanType | PlanType[] | null,
   requiredPlan: 'free' | 'pro'
 ): boolean {
   if (!userPlan) return false
+  const plans = Array.isArray(userPlan) ? userPlan : [userPlan]
+  if (plans.length === 0) return false
   if (requiredPlan === 'free') return true
-  return PRO_PLANS.includes(userPlan)
+  return plans.some((p) => PRO_PLANS.includes(p))
+}
+
+/**
+ * Vérifie si un plan (ou ensemble de plans) donne accès à un contenu donné.
+ * - Pour starter_pack uniquement : accès restreint aux contenus `starter_pack_accessible`
+ * - Pour tout autre plan : accès normal (filtrage au niveau module)
+ */
+export function canAccessContent(
+  userPlans: PlanType[],
+  contentStarterPackAccessible: boolean
+): boolean {
+  if (userPlans.length === 0) return false
+  const isStarterPackOnly = userPlans.length === 1 && userPlans[0] === 'starter_pack'
+  if (isStarterPackOnly) return contentStarterPackAccessible
+  return true
 }
 
 /**
  * Vérifie si un plan permet d'accéder au mode Apprendre.
  */
-export function canAccessLearnMode(plan: PlanType | null): boolean {
+export function canAccessLearnMode(plan: PlanType | PlanType[] | null): boolean {
   if (!plan) return false
-  const learnPlans: PlanType[] = ['bootcamp', 'free', 'pro', 'editor', 'admin']
-  return learnPlans.includes(plan)
+  const plans = Array.isArray(plan) ? plan : [plan]
+  const learnPlans: PlanType[] = ['bootcamp', 'free', 'pro', 'editor', 'admin', 'starter_pack']
+  return plans.some((p) => learnPlans.includes(p))
 }
 
 /**
@@ -55,7 +85,6 @@ export function canAccessPracticeMode(plan: PlanType | null): boolean {
 
 /**
  * Vérifie si un utilisateur a complété toutes les leçons d'un module.
- * Utilisé pour le verrouillage linéaire.
  */
 export async function hasCompletedAllLessonsInModule(
   userId: string,
@@ -65,15 +94,8 @@ export async function hasCompletedAllLessonsInModule(
   const supabase = await createClient()
 
   const [lessonsResult, completionsResult] = await Promise.all([
-    supabase
-      .from('lessons')
-      .select('id')
-      .eq('module_id', moduleId)
-      .eq('is_published', true),
-    supabase
-      .from('lesson_completions')
-      .select('lesson_id')
-      .eq('user_id', userId),
+    supabase.from('lessons').select('id').eq('module_id', moduleId).eq('is_published', true),
+    supabase.from('lesson_completions').select('lesson_id').eq('user_id', userId),
   ])
 
   const lessonIds = (lessonsResult.data as Array<{ id: string }> | null ?? []).map((l) => l.id)

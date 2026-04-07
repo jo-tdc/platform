@@ -50,13 +50,13 @@ export default async function proxy(request: NextRequest) {
       .select('plan')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .limit(1)
 
     const planRows = planQuery.data as Array<{ plan: PlanType }> | null
-    const plan = planRows?.[0]?.plan
+    const plans = planRows?.map((r) => r.plan) ?? []
+    const plan = plans[0]
 
     if (pathname.startsWith('/admin')) {
-      if (!plan || !PLANS_ADMIN.includes(plan)) {
+      if (!plans.some((p) => PLANS_ADMIN.includes(p))) {
         if (pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
         }
@@ -65,13 +65,13 @@ export default async function proxy(request: NextRequest) {
     }
 
     if (pathname.startsWith('/api/ai/')) {
-      if (!plan || !PLANS_AI.includes(plan)) {
+      if (!plans.some((p) => PLANS_AI.includes(p))) {
         return NextResponse.json({ error: 'Plan insuffisant' }, { status: 403 })
       }
     }
 
     if (pathname.startsWith('/api/practice/')) {
-      if (!plan || !PLANS_PRACTICE.includes(plan)) {
+      if (!plans.some((p) => PLANS_PRACTICE.includes(p))) {
         return NextResponse.json({ error: 'Plan insuffisant' }, { status: 403 })
       }
     }
