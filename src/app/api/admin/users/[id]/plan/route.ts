@@ -4,7 +4,7 @@ import type { PlanType } from '@/lib/utils/types'
 import { z } from 'zod'
 
 const Schema = z.object({
-  plan: z.enum(['free', 'trial', 'bootcamp', 'pro', 'editor', 'admin']),
+  plan: z.enum(['free', 'trial', 'bootcamp', 'pro', 'editor', 'admin', 'starter_pack']),
 })
 
 type Params = { params: Promise<{ id: string }> }
@@ -32,17 +32,33 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const service = createServiceClient()
 
-  // Désactive l'ancien plan s'il existe
-  await service
-    .from('user_plans')
-    .update({ is_active: false })
-    .eq('user_id', id)
-    .eq('is_active', true)
+  const newPlan = parsed.data.plan
+
+  // Si starter_pack : on l'ajoute sans toucher aux autres plans
+  // Sinon : on désactive tous les plans non-starter_pack et on insère le nouveau
+  if (newPlan === 'starter_pack') {
+    const { data: existing } = await service
+      .from('user_plans')
+      .select('id')
+      .eq('user_id', id)
+      .eq('plan', 'starter_pack')
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (existing) return Response.json({ ok: true }) // déjà présent
+  } else {
+    await service
+      .from('user_plans')
+      .update({ is_active: false })
+      .eq('user_id', id)
+      .eq('is_active', true)
+      .neq('plan', 'starter_pack') // on préserve le starter_pack existant
+  }
 
   // Insère le nouveau plan
   const { error } = await service
     .from('user_plans')
-    .insert({ user_id: id, plan: parsed.data.plan, is_active: true })
+    .insert({ user_id: id, plan: newPlan, is_active: true })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
