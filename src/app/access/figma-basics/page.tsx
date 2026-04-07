@@ -13,7 +13,7 @@ export default function StarterPackAccessPage() {
     setLoading(true)
     setError(null)
 
-    const res = await fetch('/api/access/starter-pack', {
+    const res = await fetch('/api/access/figma-basics', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
