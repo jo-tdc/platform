@@ -101,7 +101,7 @@ export type Database = {
         }
         Relationships: []
       }
-      weeks: {
+      contents: {
         Row: {
           id: string
           position: number
@@ -118,6 +118,33 @@ export type Database = {
         }
         Update: {
           id?: string
+          position?: number
+          title?: string
+          description?: string | null
+          is_published?: boolean
+        }
+        Relationships: []
+      }
+      weeks: {
+        Row: {
+          id: string
+          content_id: string | null
+          position: number
+          title: string
+          description: string | null
+          is_published: boolean
+        }
+        Insert: {
+          id?: string
+          content_id?: string | null
+          position: number
+          title: string
+          description?: string | null
+          is_published?: boolean
+        }
+        Update: {
+          id?: string
+          content_id?: string | null
           position?: number
           title?: string
           description?: string | null

@@ -5,8 +5,17 @@ import Link from 'next/link'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type Content = {
+  id: string
+  position: number
+  title: string
+  description: string | null
+  is_published: boolean
+}
+
 type Week = {
   id: string
+  content_id: string | null
   position: number
   title: string
   description: string | null
@@ -97,11 +106,11 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const inputClass = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900'
 const textareaClass = `${inputClass} resize-none`
 
-// ─── Week Form ────────────────────────────────────────────────────────────────
+// ─── Content Form ─────────────────────────────────────────────────────────────
 
-function WeekForm({ initial, onSave, onCancel, loading }: {
-  initial?: Partial<Week>
-  onSave: (data: Omit<Week, 'id'>) => void
+function ContentForm({ initial, onSave, onCancel, loading }: {
+  initial?: Partial<Content>
+  onSave: (data: Omit<Content, 'id'>) => void
   onCancel: () => void
   loading: boolean
 }) {
@@ -112,6 +121,47 @@ function WeekForm({ initial, onSave, onCancel, loading }: {
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description: description || null, position, is_published: isPublished }) }} className="space-y-4">
+      <Field label="Titre" required>
+        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="Programme principal" />
+      </Field>
+      <Field label="Description">
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={textareaClass} placeholder="Description du contenu..." />
+      </Field>
+      <Field label="Position">
+        <input type="number" value={position} onChange={(e) => setPosition(Number(e.target.value))} min={1} required className={inputClass} />
+      </Field>
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" checked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} className="rounded" />
+        Publier
+      </label>
+      <div className="flex gap-2 pt-2">
+        <button type="submit" disabled={loading || !title} className="flex-1 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors">
+          {loading ? 'Sauvegarde...' : 'Sauvegarder'}
+        </button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg transition-colors">
+          Annuler
+        </button>
+      </div>
+    </form>
+  )
+}
+
+// ─── Week Form ────────────────────────────────────────────────────────────────
+
+function WeekForm({ initial, contentId, onSave, onCancel, loading }: {
+  initial?: Partial<Week>
+  contentId: string
+  onSave: (data: Omit<Week, 'id'>) => void
+  onCancel: () => void
+  loading: boolean
+}) {
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [position, setPosition] = useState(initial?.position ?? 1)
+  const [isPublished, setIsPublished] = useState(initial?.is_published ?? false)
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description: description || null, position, is_published: isPublished, content_id: contentId }) }} className="space-y-4">
       <Field label="Titre" required>
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="Semaine 1 — Découvrir le product design" />
       </Field>
@@ -313,26 +363,31 @@ function LessonForm({ moduleId, initial, position, onSave, onCancel, loading }: 
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type Modal =
-  | { type: 'new-week' }
+type ModalState =
+  | { type: 'new-content' }
+  | { type: 'edit-content'; content: Content }
+  | { type: 'new-week'; contentId: string; nextPosition: number }
   | { type: 'edit-week'; week: Week }
   | { type: 'new-module'; weekId: string; nextPosition: number }
   | { type: 'edit-module'; module: Module }
   | { type: 'new-lesson'; moduleId: string; nextPosition: number }
 
 export default function AdminCurriculumPage() {
+  const [contents, setContents] = useState<Content[]>([])
   const [weeks, setWeeks] = useState<Week[]>([])
   const [modules, setModules] = useState<Module[]>([])
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [expandedContents, setExpandedContents] = useState<Set<string>>(new Set())
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
-  const [modal, setModal] = useState<Modal | null>(null)
+  const [modal, setModal] = useState<ModalState | null>(null)
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setFetchError(null)
-    const [wRes, mRes, lRes] = await Promise.all([
+    const [cRes, wRes, mRes, lRes] = await Promise.all([
+      fetch('/api/admin/contents'),
       fetch('/api/admin/weeks'),
       fetch('/api/admin/modules'),
       fetch('/api/admin/lessons'),
@@ -340,24 +395,42 @@ export default function AdminCurriculumPage() {
 
     if (!wRes.ok) { setFetchError('Erreur de chargement'); return }
 
-    // Weeks
-    const wData = await wRes.json()
-    setWeeks(wData.weeks ?? [])
-
-    // Modules — the GET endpoint returns all modules if we add it
-    // For now load per week using the existing route
-    if (mRes.ok) {
-      const mData = await mRes.json()
-      setModules(mData.modules ?? [])
-    }
-
-    if (lRes.ok) {
-      const lData = await lRes.json()
-      setLessons(lData.lessons ?? [])
-    }
+    if (cRes.ok) { const cData = await cRes.json(); setContents(cData.contents ?? []) }
+    const wData = await wRes.json(); setWeeks(wData.weeks ?? [])
+    if (mRes.ok) { const mData = await mRes.json(); setModules(mData.modules ?? []) }
+    if (lRes.ok) { const lData = await lRes.json(); setLessons(lData.lessons ?? []) }
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // ── Content CRUD ──
+
+  async function handleCreateContent(data: Omit<Content, 'id'>) {
+    setLoading(true)
+    const res = await fetch('/api/admin/contents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    if (res.ok) { const { content } = await res.json(); setContents((p) => [...p, content].sort((a, b) => a.position - b.position)) }
+    setLoading(false)
+    setModal(null)
+  }
+
+  async function handleUpdateContent(id: string, data: Partial<Omit<Content, 'id'>>) {
+    setLoading(true)
+    const res = await fetch(`/api/admin/contents/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    if (res.ok) { const { content } = await res.json(); setContents((p) => p.map((c) => c.id === id ? content : c).sort((a, b) => a.position - b.position)) }
+    setLoading(false)
+    setModal(null)
+  }
+
+  async function handleDeleteContent(id: string) {
+    if (!confirm('Supprimer ce contenu et toutes ses semaines/modules/leçons ?')) return
+    const res = await fetch(`/api/admin/contents/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setContents((p) => p.filter((c) => c.id !== id))
+      const removedWeekIds = weeks.filter((w) => w.content_id === id).map((w) => w.id)
+      setWeeks((p) => p.filter((w) => w.content_id !== id))
+      setModules((p) => p.filter((m) => !removedWeekIds.includes(m.week_id)))
+    }
+  }
 
   // ── Week CRUD ──
 
@@ -423,6 +496,10 @@ export default function AdminCurriculumPage() {
     if (res.ok) setLessons((p) => p.filter((l) => l.id !== id))
   }
 
+  function toggleContent(id: string) {
+    setExpandedContents((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
   function toggleWeek(id: string) {
     setExpandedWeeks((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
@@ -437,105 +514,125 @@ export default function AdminCurriculumPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Curriculum</h1>
-          <p className="text-sm text-gray-500 mt-1">{weeks.length} semaine{weeks.length !== 1 ? 's' : ''} — {modules.length} module{modules.length !== 1 ? 's' : ''} — {lessons.length} leçon{lessons.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-500 mt-1">{contents.length} contenu{contents.length !== 1 ? 's' : ''} — {weeks.length} semaine{weeks.length !== 1 ? 's' : ''} — {modules.length} module{modules.length !== 1 ? 's' : ''} — {lessons.length} leçon{lessons.length !== 1 ? 's' : ''}</p>
         </div>
         <button
-          onClick={() => setModal({ type: 'new-week' })}
+          onClick={() => setModal({ type: 'new-content' })}
           className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 transition-colors"
         >
-          + Nouvelle semaine
+          + Nouveau contenu
         </button>
       </div>
 
       {fetchError && <p className="text-sm text-red-600 mb-4">{fetchError}</p>}
 
-      {/* Weeks list */}
+      {/* Contents > Weeks > Modules > Lessons */}
       <div className="space-y-3">
-        {weeks.map((week) => {
-          const weekModules = modules.filter((m) => m.week_id === week.id).sort((a, b) => a.position - b.position)
-          const isExpanded = expandedWeeks.has(week.id)
+        {contents.map((content) => {
+          const contentWeeks = weeks.filter((w) => w.content_id === content.id).sort((a, b) => a.position - b.position)
+          const isContentExpanded = expandedContents.has(content.id)
 
           return (
-            <div key={week.id} className="border border-gray-200 rounded-xl bg-white overflow-hidden">
-              {/* Week row */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <button onClick={() => toggleWeek(week.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-700 transition-colors">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+            <div key={content.id} className="border-2 border-gray-200 rounded-xl bg-white overflow-hidden">
+              {/* Content row */}
+              <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
+                <button onClick={() => toggleContent(content.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-700 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`transition-transform ${isContentExpanded ? 'rotate-90' : ''}`}>
                     <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
-                <span className="text-xs text-gray-400 w-6 text-center font-mono">{week.position}</span>
+                <span className="text-xs text-gray-400 w-6 text-center font-mono">{content.position}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{week.title}</p>
-                  {week.description && <p className="text-xs text-gray-400 truncate">{week.description}</p>}
+                  <p className="text-sm font-semibold text-gray-900 truncate">{content.title}</p>
+                  {content.description && <p className="text-xs text-gray-400 truncate">{content.description}</p>}
                 </div>
-                <PublishedBadge value={week.is_published} />
-                <span className="text-xs text-gray-400">{weekModules.length} mod.</span>
-                <button onClick={() => setModal({ type: 'edit-week', week })} className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 hover:bg-gray-100 rounded transition-colors">Éditer</button>
-                <button onClick={() => handleDeleteWeek(week.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors">Suppr.</button>
+                <PublishedBadge value={content.is_published} />
+                <span className="text-xs text-gray-400">{contentWeeks.length} sem.</span>
+                <button onClick={() => setModal({ type: 'new-week', contentId: content.id, nextPosition: contentWeeks.length + 1 })} className="text-xs text-gray-500 hover:text-gray-900 px-2 py-1 hover:bg-gray-200 rounded transition-colors">+ Semaine</button>
+                <button onClick={() => setModal({ type: 'edit-content', content })} className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 hover:bg-gray-200 rounded transition-colors">Éditer</button>
+                <button onClick={() => handleDeleteContent(content.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors">Suppr.</button>
               </div>
 
-              {/* Modules */}
-              {isExpanded && (
-                <div className="border-t border-gray-100">
-                  {weekModules.map((mod) => {
-                    const modLessons = lessons.filter((l) => l.module_id === mod.id).sort((a, b) => a.position - b.position)
-                    const isModExpanded = expandedModules.has(mod.id)
+              {/* Weeks inside content */}
+              {isContentExpanded && (
+                <div className="divide-y divide-gray-100">
+                  {contentWeeks.map((week) => {
+                    const weekModules = modules.filter((m) => m.week_id === week.id).sort((a, b) => a.position - b.position)
+                    const isExpanded = expandedWeeks.has(week.id)
 
                     return (
-                      <div key={mod.id} className="border-b border-gray-100 last:border-b-0">
-                        {/* Module row */}
-                        <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-50">
-                          <div className="w-4 flex-shrink-0" />
-                          <button onClick={() => toggleModule(mod.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-700 transition-colors">
-                            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className={`transition-transform ${isModExpanded ? 'rotate-90' : ''}`}>
+                      <div key={week.id} className="bg-white">
+                        {/* Week row */}
+                        <div className="flex items-center gap-3 pl-8 pr-4 py-3">
+                          <button onClick={() => toggleWeek(week.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-700 transition-colors">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
                               <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </button>
-                          <span className="text-xs text-gray-400 w-4 text-center font-mono">{mod.position}</span>
+                          <span className="text-xs text-gray-400 w-6 text-center font-mono">{week.position}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800 truncate">{mod.title}</p>
-                            <p className="text-xs text-gray-400 font-mono truncate">{mod.slug}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">{week.title}</p>
+                            {week.description && <p className="text-xs text-gray-400 truncate">{week.description}</p>}
                           </div>
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${mod.required_plan === 'pro' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {mod.required_plan}
-                          </span>
-                          <PublishedBadge value={mod.is_published} />
-                          <span className="text-xs text-gray-400">{modLessons.length} leç.</span>
-                          <button onClick={() => setModal({ type: 'edit-module', module: mod })} className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 hover:bg-gray-200 rounded transition-colors">Éditer</button>
-                          <button onClick={() => handleDeleteModule(mod.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors">Suppr.</button>
+                          <PublishedBadge value={week.is_published} />
+                          <span className="text-xs text-gray-400">{weekModules.length} mod.</span>
+                          <button onClick={() => setModal({ type: 'edit-week', week })} className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 hover:bg-gray-100 rounded transition-colors">Éditer</button>
+                          <button onClick={() => handleDeleteWeek(week.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors">Suppr.</button>
                         </div>
 
-                        {/* Lessons */}
-                        {isModExpanded && (
-                          <div className="bg-white">
-                            {modLessons.map((lesson) => (
-                              <div key={lesson.id} className="flex items-center gap-3 px-4 py-2 border-t border-gray-100 hover:bg-gray-50 group">
-                                <div className="w-9 flex-shrink-0" />
-                                <span className="text-xs text-gray-400 w-4 text-center font-mono">{lesson.position}</span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-gray-700 truncate">{lesson.title}</p>
+                        {/* Modules */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-100">
+                            {weekModules.map((mod) => {
+                              const modLessons = lessons.filter((l) => l.module_id === mod.id).sort((a, b) => a.position - b.position)
+                              const isModExpanded = expandedModules.has(mod.id)
+                              return (
+                                <div key={mod.id} className="border-b border-gray-100 last:border-b-0">
+                                  <div className="flex items-center gap-3 pl-16 pr-4 py-2.5 bg-gray-50">
+                                    <button onClick={() => toggleModule(mod.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-700 transition-colors">
+                                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className={`transition-transform ${isModExpanded ? 'rotate-90' : ''}`}>
+                                        <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                      </svg>
+                                    </button>
+                                    <span className="text-xs text-gray-400 w-4 text-center font-mono">{mod.position}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-gray-800 truncate">{mod.title}</p>
+                                      <p className="text-xs text-gray-400 font-mono truncate">{mod.slug}</p>
+                                    </div>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${mod.required_plan === 'pro' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>{mod.required_plan}</span>
+                                    <PublishedBadge value={mod.is_published} />
+                                    <span className="text-xs text-gray-400">{modLessons.length} leç.</span>
+                                    <button onClick={() => setModal({ type: 'edit-module', module: mod })} className="text-xs text-gray-400 hover:text-gray-700 px-2 py-1 hover:bg-gray-200 rounded transition-colors">Éditer</button>
+                                    <button onClick={() => handleDeleteModule(mod.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors">Suppr.</button>
+                                  </div>
+                                  {isModExpanded && (
+                                    <div className="bg-white">
+                                      {modLessons.map((lesson) => (
+                                        <div key={lesson.id} className="flex items-center gap-3 pl-20 pr-4 py-2 border-t border-gray-100 hover:bg-gray-50 group">
+                                          <span className="text-xs text-gray-400 w-4 text-center font-mono">{lesson.position}</span>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-gray-700 truncate">{lesson.title}</p>
+                                          </div>
+                                          <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{LESSON_TYPE_LABELS[lesson.type]}</span>
+                                          {lesson.estimated_minutes && <span className="text-xs text-gray-400">{lesson.estimated_minutes} min</span>}
+                                          <PublishedBadge value={lesson.is_published} />
+                                          <Link href={`/admin/curriculum/lessons/${lesson.id}`} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 hover:bg-blue-50 rounded transition-colors">Éditer</Link>
+                                          <button onClick={() => handleDeleteLesson(lesson.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100">Suppr.</button>
+                                        </div>
+                                      ))}
+                                      <div className="pl-20 pr-4 py-2 border-t border-gray-100">
+                                        <button onClick={() => setModal({ type: 'new-lesson', moduleId: mod.id, nextPosition: modLessons.length + 1 })} className="text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors">
+                                          + Nouvelle leçon
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                                <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{LESSON_TYPE_LABELS[lesson.type]}</span>
-                                {lesson.estimated_minutes && <span className="text-xs text-gray-400">{lesson.estimated_minutes} min</span>}
-                                <PublishedBadge value={lesson.is_published} />
-                                <Link
-                                  href={`/admin/curriculum/lessons/${lesson.id}`}
-                                  className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 hover:bg-blue-50 rounded transition-colors"
-                                >
-                                  Éditer
-                                </Link>
-                                <button onClick={() => handleDeleteLesson(lesson.id)} className="text-xs text-red-400 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 transition-opacity">
-                                  Suppr.
-                                </button>
-                              </div>
-                            ))}
-                            <div className="px-4 py-2 border-t border-gray-100">
-                              <button
-                                onClick={() => setModal({ type: 'new-lesson', moduleId: mod.id, nextPosition: modLessons.length + 1 })}
-                                className="text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
-                              >
-                                + Nouvelle leçon
+                              )
+                            })}
+                            <div className="pl-16 pr-4 py-2.5 bg-gray-50 border-t border-gray-100">
+                              <button onClick={() => setModal({ type: 'new-module', weekId: week.id, nextPosition: weekModules.length + 1 })} className="text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+                                + Nouveau module
                               </button>
                             </div>
                           </div>
@@ -543,38 +640,38 @@ export default function AdminCurriculumPage() {
                       </div>
                     )
                   })}
-
-                  {/* Add module */}
-                  <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-100">
-                    <button
-                      onClick={() => setModal({ type: 'new-module', weekId: week.id, nextPosition: weekModules.length + 1 })}
-                      className="text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      + Nouveau module
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
           )
         })}
 
-        {weeks.length === 0 && !fetchError && (
+        {contents.length === 0 && !fetchError && (
           <div className="text-center py-16 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl">
-            Aucune semaine. Commence par créer la première.
+            Aucun contenu. Commence par créer le premier.
           </div>
         )}
       </div>
 
       {/* Modals */}
+      {modal?.type === 'new-content' && (
+        <Modal title="Nouveau contenu" onClose={() => setModal(null)}>
+          <ContentForm initial={{ position: contents.length + 1 }} onSave={handleCreateContent} onCancel={() => setModal(null)} loading={loading} />
+        </Modal>
+      )}
+      {modal?.type === 'edit-content' && (
+        <Modal title="Modifier le contenu" onClose={() => setModal(null)}>
+          <ContentForm initial={modal.content} onSave={(d) => handleUpdateContent(modal.content.id, d)} onCancel={() => setModal(null)} loading={loading} />
+        </Modal>
+      )}
       {modal?.type === 'new-week' && (
         <Modal title="Nouvelle semaine" onClose={() => setModal(null)}>
-          <WeekForm initial={{ position: weeks.length + 1 }} onSave={handleCreateWeek} onCancel={() => setModal(null)} loading={loading} />
+          <WeekForm contentId={modal.contentId} initial={{ position: modal.nextPosition }} onSave={handleCreateWeek} onCancel={() => setModal(null)} loading={loading} />
         </Modal>
       )}
       {modal?.type === 'edit-week' && (
         <Modal title="Modifier la semaine" onClose={() => setModal(null)}>
-          <WeekForm initial={modal.week} onSave={(d) => handleUpdateWeek(modal.week.id, d)} onCancel={() => setModal(null)} loading={loading} />
+          <WeekForm contentId={modal.week.content_id ?? ''} initial={modal.week} onSave={(d) => handleUpdateWeek(modal.week.id, d)} onCancel={() => setModal(null)} loading={loading} />
         </Modal>
       )}
       {modal?.type === 'new-module' && (

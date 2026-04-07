@@ -2,8 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdminAuth } from '@/lib/utils/admin-auth'
 import { z } from 'zod'
 
-const WeekSchema = z.object({
-  content_id: z.string().uuid().nullable().optional(),
+const ContentSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(500).nullable().optional(),
   position: z.number().int().min(1),
@@ -15,13 +14,10 @@ export async function GET() {
   if (auth.error) return auth.error
 
   const service = createServiceClient()
-  const { data, error } = await service
-    .from('weeks')
-    .select('*')
-    .order('position')
+  const { data, error } = await service.from('contents').select('*').order('position')
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json({ weeks: data })
+  return Response.json({ contents: data })
 }
 
 export async function POST(request: Request) {
@@ -31,16 +27,16 @@ export async function POST(request: Request) {
   let body: unknown
   try { body = await request.json() } catch { return Response.json({ error: 'Corps invalide' }, { status: 400 }) }
 
-  const parsed = WeekSchema.safeParse(body)
+  const parsed = ContentSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 422 })
 
   const service = createServiceClient()
   const { data, error } = await service
-    .from('weeks')
+    .from('contents')
     .insert({ ...parsed.data, is_published: parsed.data.is_published ?? false })
     .select()
     .single()
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
-  return Response.json({ week: data }, { status: 201 })
+  return Response.json({ content: data }, { status: 201 })
 }
