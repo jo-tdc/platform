@@ -90,7 +90,10 @@ export async function POST(request: Request) {
             Authorization: `Bearer ${hubspotToken}`,
           },
           body: JSON.stringify({
-            properties: { platform_magic_link: '', figma_basics_access: 'true' },
+            properties: {
+              first_touchpoint: 'Figma Basics',
+              touchpoints: 'Figma Basics',
+            },
           }),
         })
       } else {
@@ -102,7 +105,11 @@ export async function POST(request: Request) {
             Authorization: `Bearer ${hubspotToken}`,
           },
           body: JSON.stringify({
-            properties: { email, figma_basics_access: 'true' },
+            properties: {
+              email,
+              first_touchpoint: 'Figma Basics',
+              touchpoints: 'Figma Basics',
+            },
           }),
         })
       }
