@@ -14,6 +14,8 @@ type ModuleRow = {
   description: string | null
   required_plan: 'free' | 'pro'
   figma_url: string | null
+  asset_url: string | null
+  asset_type: 'video' | 'pdf' | 'image' | null
   week_id: string
 }
 
@@ -26,7 +28,7 @@ export default async function ModulePage({ params }: Props) {
 
   const modResult = await supabase
     .from('modules')
-    .select('id, title, description, required_plan, figma_url, week_id')
+    .select('id, title, description, required_plan, figma_url, asset_url, asset_type, week_id')
     .eq('slug', moduleSlug)
     .eq('is_published', true)
     .limit(1)
@@ -67,13 +69,33 @@ export default async function ModulePage({ params }: Props) {
         )}
       </header>
 
-      {/* Figma embed */}
+      {/* Contenu principal */}
       <div className="flex-1 overflow-hidden">
         {module.figma_url ? (
           <FigmaViewer url={module.figma_url} title={module.title} />
+        ) : module.asset_url && module.asset_type === 'video' ? (
+          <div className="flex items-center justify-center h-full bg-black">
+            <video
+              src={module.asset_url}
+              controls
+              className="max-h-full max-w-full w-full"
+              controlsList="nodownload"
+            />
+          </div>
+        ) : module.asset_url && module.asset_type === 'pdf' ? (
+          <iframe
+            src={module.asset_url}
+            className="w-full h-full border-0"
+            title={module.title}
+          />
+        ) : module.asset_url && module.asset_type === 'image' ? (
+          <div className="flex items-center justify-center h-full overflow-auto p-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={module.asset_url} alt={module.title} className="max-w-full max-h-full object-contain rounded-lg" />
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500 text-sm">Aucune présentation Figma associée à ce module.</p>
+            <p className="text-gray-500 text-sm">Aucun contenu associé à ce module.</p>
           </div>
         )}
       </div>

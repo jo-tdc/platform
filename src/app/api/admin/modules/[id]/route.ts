@@ -13,6 +13,8 @@ const ModuleUpdateSchema = z.object({
   is_published: z.boolean().optional(),
   figma_url: z.string().url().nullable().optional(),
   preview_url: z.string().url().nullable().optional(),
+  asset_url: z.string().url().nullable().optional(),
+  asset_type: z.enum(['video', 'pdf', 'image']).nullable().optional(),
 })
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {

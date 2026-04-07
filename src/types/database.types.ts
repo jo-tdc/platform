@@ -165,6 +165,8 @@ export type Database = {
           is_published: boolean
           figma_url: string | null
           preview_url: string | null
+          asset_url: string | null
+          asset_type: 'video' | 'pdf' | 'image' | null
         }
         Insert: {
           id?: string
@@ -178,6 +180,8 @@ export type Database = {
           is_published?: boolean
           figma_url?: string | null
           preview_url?: string | null
+          asset_url?: string | null
+          asset_type?: 'video' | 'pdf' | 'image' | null
         }
         Update: {
           id?: string
@@ -191,6 +195,8 @@ export type Database = {
           is_published?: boolean
           figma_url?: string | null
           preview_url?: string | null
+          asset_url?: string | null
+          asset_type?: 'video' | 'pdf' | 'image' | null
         }
         Relationships: []
       }

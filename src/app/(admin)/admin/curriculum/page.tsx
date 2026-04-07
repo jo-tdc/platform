@@ -34,6 +34,8 @@ type Module = {
   is_published: boolean
   figma_url: string | null
   preview_url: string | null
+  asset_url: string | null
+  asset_type: 'video' | 'pdf' | 'image' | null
 }
 
 type Lesson = {
@@ -208,6 +210,10 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
   const [previewUrl, setPreviewUrl] = useState(initial?.preview_url ?? '')
   const [fetchingPreview, setFetchingPreview] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [assetUrl, setAssetUrl] = useState(initial?.asset_url ?? '')
+  const [assetType, setAssetType] = useState<'video' | 'pdf' | 'image' | null>(initial?.asset_type ?? null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   function handleTitleChange(v: string) {
     setTitle(v)
@@ -232,8 +238,24 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
     setFetchingPreview(false)
   }
 
+  async function handleFileUpload(file: File) {
+    setUploading(true)
+    setUploadError(null)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/admin/modules/upload', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (!res.ok) {
+      setUploadError(data.error ?? 'Erreur upload')
+    } else {
+      setAssetUrl(data.url)
+      setAssetType(data.asset_type)
+    }
+    setUploading(false)
+  }
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave({ week_id: weekId, title, slug, description: description || null, ai_context: aiContext || null, required_plan: requiredPlan, position: pos, is_published: isPublished, figma_url: figmaUrl || null, preview_url: previewUrl || null }) }} className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); onSave({ week_id: weekId, title, slug, description: description || null, ai_context: aiContext || null, required_plan: requiredPlan, position: pos, is_published: isPublished, figma_url: figmaUrl || null, preview_url: previewUrl || null, asset_url: assetUrl || null, asset_type: assetType }) }} className="space-y-4">
       <Field label="Titre" required>
         <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} required className={inputClass} placeholder="Introduction au product design" />
       </Field>
@@ -276,6 +298,36 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
           <p className="text-xs text-gray-400 px-3 py-1.5 truncate">{previewUrl}</p>
         </div>
       )}
+
+      {/* File upload */}
+      <Field label="Fichier (vidéo, PDF, image)">
+        <div
+          className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileUpload(f) }}
+          onClick={() => document.getElementById('module-file-input')?.click()}
+        >
+          <input
+            id="module-file-input"
+            type="file"
+            className="hidden"
+            accept="video/mp4,video/webm,video/quicktime,application/pdf,image/png,image/jpeg,image/gif,image/webp"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f) }}
+          />
+          {uploading ? (
+            <p className="text-sm text-gray-500">Upload en cours...</p>
+          ) : assetUrl ? (
+            <div className="space-y-1">
+              <p className="text-xs text-green-600 font-medium">Fichier uploadé ({assetType})</p>
+              <p className="text-xs text-gray-400 truncate">{assetUrl}</p>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setAssetUrl(''); setAssetType(null) }} className="text-xs text-red-500 hover:text-red-700">Supprimer</button>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">Glisser un fichier ou cliquer pour choisir<br/><span className="text-xs">MP4, WebM, MOV, PDF, PNG, JPEG, GIF, WebP — max 500 Mo</span></p>
+          )}
+        </div>
+        {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
+      </Field>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Plan requis">
