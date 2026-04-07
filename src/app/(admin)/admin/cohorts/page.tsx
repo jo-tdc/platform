@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-type PlanValue = 'free' | 'trial' | 'bootcamp' | 'pro' | 'editor' | 'admin'
+type PlanValue = 'free' | 'trial' | 'bootcamp' | 'pro' | 'editor' | 'admin' | 'starter_pack'
 
 const PLANS: { value: PlanValue; label: string; color: string }[] = [
-  { value: 'free',      label: 'Free',      color: 'bg-gray-100 text-gray-600' },
-  { value: 'trial',     label: 'Trial',     color: 'bg-yellow-50 text-yellow-700' },
-  { value: 'bootcamp',  label: 'Bootcamp',  color: 'bg-blue-50 text-blue-700' },
-  { value: 'pro',       label: 'Pro',       color: 'bg-purple-50 text-purple-700' },
-  { value: 'editor',    label: 'Editor',    color: 'bg-orange-50 text-orange-700' },
-  { value: 'admin',     label: 'Admin',     color: 'bg-red-50 text-red-700' },
+  { value: 'free',         label: 'Free',         color: 'bg-gray-100 text-gray-600' },
+  { value: 'trial',        label: 'Trial',        color: 'bg-yellow-50 text-yellow-700' },
+  { value: 'starter_pack', label: 'Starter Pack', color: 'bg-green-50 text-green-700' },
+  { value: 'bootcamp',     label: 'Bootcamp',     color: 'bg-blue-50 text-blue-700' },
+  { value: 'pro',          label: 'Pro',          color: 'bg-purple-50 text-purple-700' },
+  { value: 'editor',       label: 'Editor',       color: 'bg-orange-50 text-orange-700' },
+  { value: 'admin',        label: 'Admin',        color: 'bg-red-50 text-red-700' },
 ]
 
 type Cohort = { id: string; name: string; is_open: boolean }
@@ -21,6 +22,7 @@ type User = {
   created_at: string
   last_sign_in_at: string | null
   plan: PlanValue | null
+  plans: PlanValue[]
   cohort_id: string | null
   cohort_name: string | null
 }
@@ -225,11 +227,20 @@ function InviteModal({ cohorts, onClose, onInvited }: { cohorts: Cohort[]; onClo
   )
 }
 
+type TabId = 'all' | 'bootcamp' | 'starter_pack'
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'all', label: 'Tous' },
+  { id: 'bootcamp', label: 'Bootcamp' },
+  { id: 'starter_pack', label: 'Starter Pack' },
+]
+
 export default function AdminCohortsPage() {
   const [users, setUsers] = useState<User[]>([])
   const [cohorts, setCohorts] = useState<Cohort[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeTab, setActiveTab] = useState<TabId>('all')
   const [showInvite, setShowInvite] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -257,7 +268,13 @@ export default function AdminCohortsPage() {
     setDeletingId(null)
   }
 
-  const filtered = users.filter((u) =>
+  const tabFiltered = users.filter((u) => {
+    if (activeTab === 'bootcamp') return u.plans.includes('bootcamp')
+    if (activeTab === 'starter_pack') return u.plans.includes('starter_pack')
+    return true
+  })
+
+  const filtered = tabFiltered.filter((u) =>
     u.email.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -274,6 +291,31 @@ export default function AdminCohortsPage() {
         >
           + Inviter
         </button>
+      </div>
+
+      {/* Onglets */}
+      <div className="flex gap-1 mb-4 border-b border-gray-200">
+        {TABS.map((tab) => {
+          const count = tab.id === 'all'
+            ? users.length
+            : users.filter((u) => u.plans.includes(tab.id as PlanValue)).length
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                activeTab === tab.id
+                  ? 'border-gray-900 text-gray-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <div className="mb-4">
@@ -310,7 +352,12 @@ export default function AdminCohortsPage() {
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-900 font-medium">{u.email}</td>
                   <td className="px-4 py-3">
-                    <PlanDropdown userId={u.id} current={u.plan} onChanged={(plan) => handlePlanChanged(u.id, plan)} />
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <PlanDropdown userId={u.id} current={u.plan} onChanged={(plan) => handlePlanChanged(u.id, plan)} />
+                      {u.plans.includes('starter_pack') && u.plan !== 'starter_pack' && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700">Starter Pack</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     {u.cohort_name

@@ -31,9 +31,18 @@ export async function GET() {
     .from('cohort_members')
     .select('user_id, cohort_id, cohorts(name)')
 
-  const planMap = new Map(
-    (plans ?? []).map((p) => [p.user_id, p])
-  )
+  // Grouper tous les plans par user_id
+  const plansMap = new Map<string, string[]>()
+  for (const p of (plans ?? [])) {
+    const existing = plansMap.get(p.user_id) ?? []
+    existing.push(p.plan)
+    plansMap.set(p.user_id, existing)
+  }
+
+  const PLAN_PRIORITY: Record<string, number> = {
+    admin: 7, editor: 6, bootcamp: 5, pro: 4, trial: 3, free: 2, starter_pack: 1,
+  }
+
   type MemberRow = { user_id: string; cohort_id: string; cohorts: { name: string } | null }
   const cohortMap = new Map(
     ((members ?? []) as unknown as MemberRow[]).map((m) => [
@@ -42,17 +51,20 @@ export async function GET() {
     ])
   )
 
-  const users = authData.users.map((u) => ({
-    id: u.id,
-    email: u.email ?? '',
-    created_at: u.created_at,
-    last_sign_in_at: u.last_sign_in_at ?? null,
-    plan: planMap.get(u.id)?.plan ?? null,
-    plan_started_at: planMap.get(u.id)?.started_at ?? null,
-    plan_expires_at: planMap.get(u.id)?.expires_at ?? null,
-    cohort_id: cohortMap.get(u.id)?.cohort_id ?? null,
-    cohort_name: cohortMap.get(u.id)?.cohort_name ?? null,
-  }))
+  const users = authData.users.map((u) => {
+    const userPlans = plansMap.get(u.id) ?? []
+    const primaryPlan = userPlans.sort((a, b) => (PLAN_PRIORITY[b] ?? 0) - (PLAN_PRIORITY[a] ?? 0))[0] ?? null
+    return {
+      id: u.id,
+      email: u.email ?? '',
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at ?? null,
+      plan: primaryPlan,
+      plans: userPlans,
+      cohort_id: cohortMap.get(u.id)?.cohort_id ?? null,
+      cohort_name: cohortMap.get(u.id)?.cohort_name ?? null,
+    }
+  })
 
   // Tri par date de création desc
   users.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
