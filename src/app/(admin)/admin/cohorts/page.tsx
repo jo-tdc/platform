@@ -55,12 +55,17 @@ function PlanDropdown({ userId, current, onChanged }: { userId: string; current:
     if (plan === current) { setOpen(false); return }
     setSaving(true)
     setOpen(false)
-    await fetch(`/api/admin/users/${userId}/plan`, {
+    const res = await fetch(`/api/admin/users/${userId}/plan`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan }),
     })
-    onChanged(plan)
+    if (res.ok) {
+      onChanged(plan)
+    } else {
+      const data = await res.json()
+      alert(`Erreur : ${data.error ?? 'Impossible de changer le plan'}`)
+    }
     setSaving(false)
   }
 
