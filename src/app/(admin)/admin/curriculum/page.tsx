@@ -241,16 +241,34 @@ function ModuleForm({ weekId, initial, position, onSave, onCancel, loading }: {
   async function handleFileUpload(file: File) {
     setUploading(true)
     setUploadError(null)
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await fetch('/api/admin/modules/upload', { method: 'POST', body: formData })
-    const data = await res.json()
-    if (!res.ok) {
-      setUploadError(data.error ?? 'Erreur upload')
-    } else {
-      setAssetUrl(data.url)
-      setAssetType(data.asset_type)
+
+    // 1. Demander une URL signée à l'API
+    const presignRes = await fetch('/api/admin/modules/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    })
+    const presignData = await presignRes.json()
+    if (!presignRes.ok) {
+      setUploadError(presignData.error ?? 'Erreur lors de la création de l\'URL')
+      setUploading(false)
+      return
     }
+
+    // 2. Uploader directement vers Supabase Storage (sans passer par Vercel)
+    const uploadRes = await fetch(presignData.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    })
+    if (!uploadRes.ok) {
+      setUploadError('Erreur lors de l\'upload vers le stockage')
+      setUploading(false)
+      return
+    }
+
+    setAssetUrl(presignData.publicUrl)
+    setAssetType(presignData.asset_type)
     setUploading(false)
   }
 

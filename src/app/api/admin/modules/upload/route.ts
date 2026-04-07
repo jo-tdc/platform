@@ -13,38 +13,44 @@ const ALLOWED_TYPES: Record<string, 'video' | 'pdf' | 'image'> = {
   'image/webp': 'image',
 }
 
-const MAX_SIZE_MB = 500
-
-// POST /api/admin/modules/upload — upload un fichier vers Supabase Storage
+// POST /api/admin/modules/upload/presign
+// Body: { filename: string, contentType: string }
+// Retourne une URL signée pour uploader directement depuis le navigateur vers Supabase Storage
 export async function POST(request: Request) {
   const auth = await requireAdminAuth()
   if (auth.error) return auth.error
 
-  const formData = await request.formData()
-  const file = formData.get('file') as File | null
+  let body: unknown
+  try { body = await request.json() } catch { return Response.json({ error: 'Corps invalide' }, { status: 400 }) }
 
-  if (!file) return Response.json({ error: 'Fichier manquant' }, { status: 400 })
+  const { filename, contentType } = body as { filename?: string; contentType?: string }
 
-  const assetType = ALLOWED_TYPES[file.type]
+  if (!filename || !contentType) {
+    return Response.json({ error: 'filename et contentType requis' }, { status: 400 })
+  }
+
+  const assetType = ALLOWED_TYPES[contentType]
   if (!assetType) {
-    return Response.json({ error: `Type non supporté : ${file.type}` }, { status: 422 })
+    return Response.json({ error: `Type non supporté : ${contentType}` }, { status: 422 })
   }
 
-  if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-    return Response.json({ error: `Fichier trop lourd (max ${MAX_SIZE_MB} Mo)` }, { status: 422 })
-  }
-
-  const ext = file.name.split('.').pop() ?? 'bin'
+  const ext = filename.split('.').pop() ?? 'bin'
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const service = createServiceClient()
-  const { error: uploadError } = await service.storage
+  const { data, error } = await service.storage
     .from('module-assets')
-    .upload(path, file, { contentType: file.type, upsert: false })
+    .createSignedUploadUrl(path)
 
-  if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 })
+  if (error || !data) {
+    return Response.json({ error: error?.message ?? 'Erreur création URL signée' }, { status: 500 })
+  }
 
   const { data: urlData } = service.storage.from('module-assets').getPublicUrl(path)
 
-  return Response.json({ url: urlData.publicUrl, asset_type: assetType })
+  return Response.json({
+    signedUrl: data.signedUrl,
+    publicUrl: urlData.publicUrl,
+    asset_type: assetType,
+  })
 }
