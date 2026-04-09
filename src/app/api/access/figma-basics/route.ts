@@ -133,8 +133,32 @@ export async function POST(request: Request) {
 
   if (hubspotLog) console.log('[figma-basics] HubSpot:', hubspotLog)
 
-  // 5. Générer le magic link et envoyer via Resend avec le template Figma Basics
+  // 5. Envoyer le magic link
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+
+  if (!process.env.RESEND_API_KEY) {
+    // Fallback Supabase OTP si Resend non configuré
+    const { createServerClient } = await import('@supabase/ssr')
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+    const supabaseOtp = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll() },
+          setAll(cs) { cs.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) },
+        },
+      }
+    )
+    const { error: otpError } = await supabaseOtp.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${appUrl}/callback`, shouldCreateUser: false },
+    })
+    if (otpError) return Response.json({ error: otpError.message, hubspot: hubspotLog }, { status: 500 })
+    return Response.json({ ok: true, hubspot: hubspotLog })
+  }
+
   const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
     type: 'magiclink',
     email,
@@ -151,7 +175,7 @@ export async function POST(request: Request) {
     await sendEmail(email, template.subject, template.html)
   } catch (err) {
     console.error('[figma-basics] Erreur envoi email:', err)
-    return Response.json({ error: 'Erreur lors de l\'envoi de l\'email.', hubspot: hubspotLog }, { status: 500 })
+    return Response.json({ error: "Erreur lors de l'envoi de l'email.", hubspot: hubspotLog }, { status: 500 })
   }
 
   return Response.json({ ok: true, hubspot: hubspotLog })

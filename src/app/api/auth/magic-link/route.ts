@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email/send'
 import { emailFirstConnection, emailReturningUser } from '@/lib/email/templates'
 import { z } from 'zod'
@@ -8,8 +8,8 @@ const Schema = z.object({
 })
 
 // POST /api/auth/magic-link
-// Génère un magic link et envoie le bon template selon si c'est une première connexion ou non.
-// Ne crée pas de compte — l'utilisateur doit déjà exister.
+// Si RESEND_API_KEY est configurée : génère le lien + envoie le bon template (première connexion ou retour).
+// Sinon : fallback sur signInWithOtp Supabase (Resend SMTP) pour ne pas bloquer la connexion.
 export async function POST(request: Request) {
   let body: unknown
   try { body = await request.json() } catch {
@@ -20,9 +20,22 @@ export async function POST(request: Request) {
   if (!parsed.success) return Response.json({ error: 'Email invalide' }, { status: 422 })
 
   const { email } = parsed.data
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+
+  // — Fallback si Resend non configuré —
+  if (!process.env.RESEND_API_KEY) {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${appUrl}/callback` },
+    })
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    return Response.json({ ok: true })
+  }
+
+  // — Chemin principal (Resend configuré) —
   const service = createServiceClient()
 
-  // Vérifie si l'utilisateur existe
   const { data: existing } = await service.auth.admin.listUsers({ perPage: 1000 })
   const existingUser = existing?.users.find((u) => u.email === email)
 
@@ -30,8 +43,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Aucun compte associé à cet email.' }, { status: 404 })
   }
 
-  // Génère le magic link côté serveur
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
     type: 'magiclink',
     email,
@@ -42,19 +53,16 @@ export async function POST(request: Request) {
     return Response.json({ error: linkError?.message ?? 'Erreur génération du lien' }, { status: 500 })
   }
 
-  const magicLink = linkData.properties.action_link
-
-  // Première connexion si jamais connecté
   const isFirstConnection = !existingUser.last_sign_in_at
   const template = isFirstConnection
-    ? emailFirstConnection(magicLink)
-    : emailReturningUser(magicLink)
+    ? emailFirstConnection(linkData.properties.action_link)
+    : emailReturningUser(linkData.properties.action_link)
 
   try {
     await sendEmail(email, template.subject, template.html)
   } catch (err) {
     console.error('[magic-link] Erreur envoi email:', err)
-    return Response.json({ error: 'Erreur lors de l\'envoi de l\'email.' }, { status: 500 })
+    return Response.json({ error: "Erreur lors de l'envoi de l'email." }, { status: 500 })
   }
 
   return Response.json({ ok: true })
