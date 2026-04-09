@@ -44,11 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </nav>
 
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-1">
           {isAdmin && (
             <Link
               href="/admin/curriculum"
-              className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Espace admin
             </Link>
@@ -56,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <form action={signOut}>
             <button
               type="submit"
-              className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Déconnexion
             </button>
