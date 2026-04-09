@@ -1,5 +1,8 @@
+import { createServerClient } from '@supabase/ssr'
 import { createServiceClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
+import type { Database } from '@/types/database.types'
 
 const Schema = z.object({
   email: z.string().email(),
@@ -119,6 +122,35 @@ export async function POST(request: Request) {
 
   if (hubspotLog) console.log('[figma-basics] HubSpot:', hubspotLog)
 
-  // 5. L'email sera envoyé côté client via signInWithOtp (flux PKCE)
+  // 5. Envoyer le magic link côté serveur avec Sb-Forwarded-For (vraie IP de l'utilisateur)
+  const userIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? ''
+  const cookieStore = await cookies()
+
+  const supabaseOtp = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      global: { headers: userIp ? { 'sb-forwarded-for': userIp } : {} },
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+        },
+      },
+    }
+  )
+
+  const { error: otpError } = await supabaseOtp.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
+      shouldCreateUser: false,
+    },
+  })
+
+  if (otpError) {
+    return Response.json({ error: otpError.message, hubspot: hubspotLog }, { status: 500 })
+  }
+
   return Response.json({ ok: true, hubspot: hubspotLog })
 }

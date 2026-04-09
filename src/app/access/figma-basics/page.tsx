@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export default function FigmaBasicsAccessPage() {
   const [email, setEmail] = useState('')
@@ -14,7 +13,7 @@ export default function FigmaBasicsAccessPage() {
     setLoading(true)
     setError(null)
 
-    // 1. Créer le compte + assigner starter_pack + notifier HubSpot
+    // Créer le compte + assigner starter_pack + notifier HubSpot + envoyer le magic link
     const res = await fetch('/api/access/figma-basics', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -22,26 +21,10 @@ export default function FigmaBasicsAccessPage() {
     })
 
     const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? 'Une erreur est survenue, réessaie.')
-      setLoading(false)
-      return
-    }
-
-    // 2. Envoyer le magic link depuis le navigateur (flux PKCE correct)
-    const supabase = createClient()
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/callback`,
-        shouldCreateUser: false,
-      },
-    })
-
     setLoading(false)
 
-    if (otpError) {
-      setError(otpError.message)
+    if (!res.ok) {
+      setError(data.error ?? 'Une erreur est survenue, réessaie.')
       return
     }
 
