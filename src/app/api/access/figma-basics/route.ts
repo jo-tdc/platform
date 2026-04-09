@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const service = createServiceClient()
 
   // 1. Trouver ou créer l'utilisateur
-  const { data: existingUsers } = await service.auth.admin.listUsers()
+  const { data: existingUsers } = await service.auth.admin.listUsers({ perPage: 1000 })
   const existingAuthUser = existingUsers?.users?.find((u) => u.email === email)
 
   let userId: string
