@@ -64,61 +64,61 @@ export async function POST(request: Request) {
 
   // 4. Notifier HubSpot — créer/mettre à jour le contact avec le touch point Figma Basics
   const hubspotToken = process.env.HUBSPOT_API_TOKEN
-  if (hubspotToken) {
+  let hubspotLog: string | null = null
+
+  if (!hubspotToken) {
+    hubspotLog = 'HUBSPOT_API_TOKEN manquant'
+  } else {
     try {
       // Recherche du contact par email
       const searchRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${hubspotToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hubspotToken}` },
         body: JSON.stringify({
           filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
           properties: ['email', 'hs_object_id'],
         }),
       })
       const searchData = await searchRes.json()
-      const contactId = searchData.results?.[0]?.id
 
-      if (contactId) {
-        // Mettre à jour le contact existant
-        await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${hubspotToken}`,
-          },
-          body: JSON.stringify({
-            properties: {
-              first_touchpoint: 'Figma Basics',
-              touchpoints: 'Figma Basics',
-            },
-          }),
-        })
+      if (!searchRes.ok) {
+        hubspotLog = `Search failed ${searchRes.status}: ${JSON.stringify(searchData)}`
       } else {
-        // Créer le contact
-        await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${hubspotToken}`,
-          },
-          body: JSON.stringify({
-            properties: {
-              email,
-              first_touchpoint: 'Figma Basics',
-              touchpoints: 'Figma Basics',
-            },
-          }),
-        })
+        const contactId = searchData.results?.[0]?.id
+
+        if (contactId) {
+          const patchRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hubspotToken}` },
+            body: JSON.stringify({ properties: { first_touchpoint: 'Figma Basics', touchpoints: 'Figma Basics' } }),
+          })
+          const patchData = await patchRes.json()
+          if (!patchRes.ok) {
+            hubspotLog = `PATCH failed ${patchRes.status}: ${JSON.stringify(patchData)}`
+          } else {
+            hubspotLog = `Contact mis à jour (id: ${contactId})`
+          }
+        } else {
+          const postRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hubspotToken}` },
+            body: JSON.stringify({ properties: { email, first_touchpoint: 'Figma Basics', touchpoints: 'Figma Basics' } }),
+          })
+          const postData = await postRes.json()
+          if (!postRes.ok) {
+            hubspotLog = `POST failed ${postRes.status}: ${JSON.stringify(postData)}`
+          } else {
+            hubspotLog = `Contact créé (id: ${postData.id})`
+          }
+        }
       }
     } catch (err) {
-      console.error('[starter-pack] HubSpot error:', err)
-      // On ne bloque pas si HubSpot échoue
+      hubspotLog = `Exception: ${err instanceof Error ? err.message : String(err)}`
     }
   }
 
+  if (hubspotLog) console.log('[figma-basics] HubSpot:', hubspotLog)
+
   // 5. L'email sera envoyé côté client via signInWithOtp (flux PKCE)
-  return Response.json({ ok: true })
+  return Response.json({ ok: true, hubspot: hubspotLog })
 }

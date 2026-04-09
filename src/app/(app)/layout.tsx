@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getUserActivePlans } from '@/lib/utils/access'
+import { getUserActivePlans, canAccessPracticeMode } from '@/lib/utils/access'
 
 async function signOut() {
   'use server'
@@ -20,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const plans = await getUserActivePlans(user.id)
   const isAdmin = plans.includes('admin') || plans.includes('editor')
+  const hasPractice = canAccessPracticeMode(plans[0] ?? null)
 
   return (
     <div className="h-screen bg-white flex flex-col overflow-hidden">
@@ -36,12 +37,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           >
             Apprendre
           </Link>
-          <Link
-            href="/practice"
-            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            Pratiquer
-          </Link>
+          {hasPractice && (
+            <Link
+              href="/practice"
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Pratiquer
+            </Link>
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
