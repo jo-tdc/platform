@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getUserActivePlans } from '@/lib/utils/access'
 
 async function signOut() {
   'use server'
@@ -16,6 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) {
     redirect('/login')
   }
+
+  const plans = await getUserActivePlans(user.id)
+  const isAdmin = plans.includes('admin') || plans.includes('editor')
 
   return (
     <div className="h-screen bg-white flex flex-col overflow-hidden">
@@ -40,7 +44,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
         </nav>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          {isAdmin && (
+            <Link
+              href="/admin/curriculum"
+              className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              Espace admin
+            </Link>
+          )}
           <form action={signOut}>
             <button
               type="submit"

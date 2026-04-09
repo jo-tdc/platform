@@ -1,12 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { getUserActivePlans, canAccessPracticeMode } from '@/lib/utils/access'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/login')
+
+  const plans = await getUserActivePlans(user.id)
+  const primaryPlan = plans[0] ?? null
+  const hasPractice = canAccessPracticeMode(primaryPlan)
+
+  if (!hasPractice) redirect('/learn')
 
   return (
     <div className="flex-1 overflow-y-auto">

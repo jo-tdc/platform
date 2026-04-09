@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { getUserActivePlan, canAccessModule } from '@/lib/utils/access'
 import type { PlanType } from '@/lib/utils/types'
 import FigmaViewer from '@/components/learn/FigmaViewer'
+import BackButton from '@/components/learn/BackButton'
 
 type Props = {
   params: Promise<{ weekSlug: string; moduleSlug: string }>
@@ -43,15 +44,7 @@ export default async function ModulePage({ params }: Props) {
     <div className="flex flex-col flex-1 overflow-hidden bg-gray-950">
       {/* Header */}
       <header className="flex items-center gap-4 px-4 py-2.5 bg-gray-900 border-b border-gray-800 flex-shrink-0">
-        <a
-          href={`/learn`}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Curriculum
-        </a>
+        <BackButton />
         <div className="w-px h-4 bg-gray-700" />
         <h1 className="text-sm font-medium text-white truncate">{module.title}</h1>
         {module.figma_url && (
