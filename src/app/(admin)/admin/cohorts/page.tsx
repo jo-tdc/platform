@@ -118,6 +118,7 @@ function InviteModal({ cohorts, onClose, onInvited }: { cohorts: Cohort[]; onClo
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accessLink, setAccessLink] = useState<string | null>(null)
+  const [emailSent, setEmailSent] = useState(false)
   const [copied, setCopied] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -141,6 +142,7 @@ function InviteModal({ cohorts, onClose, onInvited }: { cohorts: Cohort[]; onClo
     if (!res.ok) { setError(data.error ?? 'Erreur inconnue'); return }
 
     setAccessLink(data.accessLink ?? null)
+    setEmailSent(data.emailSent ?? false)
     onInvited()
   }
 
@@ -211,7 +213,14 @@ function InviteModal({ cohorts, onClose, onInvited }: { cohorts: Cohort[]; onClo
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 
-          {accessLink ? (
+          {emailSent ? (
+            <div className="space-y-3">
+              <p className="text-xs text-green-700 font-medium">Compte créé. Un email de connexion a été envoyé à {email}.</p>
+              <button type="button" onClick={onClose} className="w-full py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                Fermer
+              </button>
+            </div>
+          ) : accessLink ? (
             <div className="space-y-3">
               <p className="text-xs text-green-700 font-medium">Compte créé. Partage ce lien de connexion :</p>
               <div className="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-lg">

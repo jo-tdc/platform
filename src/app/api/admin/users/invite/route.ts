@@ -1,5 +1,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getUserActivePlan } from '@/lib/utils/access'
+import { sendEmail } from '@/lib/email/send'
+import { emailFirstConnection } from '@/lib/email/templates'
 import type { PlanType } from '@/lib/utils/types'
 import { z } from 'zod'
 
@@ -95,20 +97,33 @@ export async function POST(request: Request) {
       .insert({ user_id: targetUserId, cohort_id: parsed.data.cohortId })
   }
 
-  // Génère un lien magic link (connexion directe) — sans envoyer d'email
+  // Génère le magic link
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
     type: 'magiclink',
     email: parsed.data.email,
-    options: { redirectTo: `${appUrl}/dashboard` },
+    options: { redirectTo: `${appUrl}/callback` },
   })
 
   const accessLink = linkError ? null : linkData?.properties?.action_link ?? null
+
+  // Envoie le mail "première connexion" si Resend est configuré
+  let emailSent = false
+  if (accessLink && process.env.RESEND_API_KEY) {
+    try {
+      const template = emailFirstConnection(accessLink)
+      await sendEmail(parsed.data.email, template.subject, template.html)
+      emailSent = true
+    } catch (err) {
+      console.error('[invite] Erreur envoi email:', err)
+    }
+  }
 
   return Response.json({
     ok: true,
     userId: targetUserId,
     existing: !!existingUser,
-    accessLink,
+    accessLink: emailSent ? null : accessLink, // si mail envoyé, pas besoin d'afficher le lien
+    emailSent,
   })
 }
