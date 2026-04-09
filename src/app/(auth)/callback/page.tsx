@@ -8,41 +8,47 @@ export default function CallbackPage() {
   const router = useRouter()
 
   useEffect(() => {
-    async function handleCallback() {
-      const supabase = createClient()
+    const supabase = createClient()
+    const next = new URLSearchParams(window.location.search).get('next') ?? '/dashboard'
+    let done = false
 
-      // Lire les params directement depuis window.location (évite useSearchParams + Suspense)
-      const searchParams = new URLSearchParams(window.location.search)
-      const code = searchParams.get('code')
-      const next = searchParams.get('next') ?? '/dashboard'
-
-      let sessionOk = false
-
-      if (code) {
-        // Flow PKCE (Google OAuth)
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) sessionOk = true
-      } else {
-        // Flow implicite — tokens dans le hash fragment
-        const params = new URLSearchParams(window.location.hash.replace('#', ''))
-        const access_token = params.get('access_token')
-        const refresh_token = params.get('refresh_token')
-        if (access_token && refresh_token) {
-          const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-          if (!error) sessionOk = true
-        }
-      }
-
-      if (!sessionOk) {
-        router.replace('/login?error=auth_failed')
-        return
-      }
-
+    async function finish() {
+      if (done) return
+      done = true
       await fetch('/api/auth/sync', { method: 'POST' })
       router.replace(next)
     }
 
-    handleCallback()
+    // createBrowserClient détecte automatiquement ?code= (PKCE — Google OAuth, etc.)
+    // et émet SIGNED_IN quand la session est établie
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        subscription.unsubscribe()
+        finish()
+      }
+    })
+
+    // Flow implicite : tokens dans le hash fragment (magic link Supabase SMTP)
+    const hash = window.location.hash
+    if (hash) {
+      const params = new URLSearchParams(hash.replace('#', ''))
+      const access_token = params.get('access_token')
+      const refresh_token = params.get('refresh_token')
+      if (access_token && refresh_token) {
+        supabase.auth.setSession({ access_token, refresh_token })
+        // setSession déclenche SIGNED_IN → capturé par onAuthStateChange ci-dessus
+      } else {
+        subscription.unsubscribe()
+        router.replace('/login?error=auth_failed')
+      }
+    } else if (!new URLSearchParams(window.location.search).get('code')) {
+      // Ni hash ni code : rien à faire
+      subscription.unsubscribe()
+      router.replace('/login?error=auth_failed')
+    }
+    // Si ?code= présent : createBrowserClient gère automatiquement, on attend SIGNED_IN
+
+    return () => subscription.unsubscribe()
   }, [router])
 
   return (
