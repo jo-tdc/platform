@@ -93,7 +93,7 @@ function buildEmail(p: {
               &nbsp;&middot;&nbsp;
               <a href="https://linkedin.com/company/thedesigncrew" style="color:#9ca3af;text-decoration:none;">LinkedIn</a>
               &nbsp;&middot;&nbsp;
-              <a href="https://instagram.com/thedesigncrew" style="color:#9ca3af;text-decoration:none;">Instagram</a>
+              <a href="https://instagram.com/join_thedesigncrew" style="color:#9ca3af;text-decoration:none;">Instagram</a>
             </p>
           </td>
         </tr>
