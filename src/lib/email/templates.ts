@@ -74,8 +74,8 @@ function buildEmail(p: {
                       </td>
                       <td style="vertical-align:middle;">
                         <p style="font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#111827;margin:0 0 2px;">Zélia</p>
-                        <p style="font-family:Arial,sans-serif;font-size:13px;color:#6b7280;margin:0 0 6px;">Fondatrice — All-round Design Hub</p>
-                        <p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:0;">zelia@allrounddesignhub.com</p>
+                        <p style="font-family:Arial,sans-serif;font-size:13px;color:#6b7280;margin:0 0 6px;">Fondatrice — The Design Crew</p>
+                        <p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:0;">zelia@thedesigncrew.co</p>
                       </td>
                     </tr>
                   </table>
@@ -89,11 +89,11 @@ function buildEmail(p: {
         <tr>
           <td bgcolor="#ffffff" style="padding:20px 32px 28px;border-top:1px solid #e5e7eb;border-radius:0 0 16px 16px;">
             <p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:0;text-align:center;">
-              <a href="https://allrounddesignhub.com" style="color:#9ca3af;text-decoration:none;">Site web</a>
+              <a href="https://thedesigncrew.co" style="color:#9ca3af;text-decoration:none;">Site web</a>
               &nbsp;&middot;&nbsp;
-              <a href="https://linkedin.com/company/allrounddesignhub" style="color:#9ca3af;text-decoration:none;">LinkedIn</a>
+              <a href="https://linkedin.com/company/thedesigncrew" style="color:#9ca3af;text-decoration:none;">LinkedIn</a>
               &nbsp;&middot;&nbsp;
-              <a href="https://instagram.com/allrounddesignhub" style="color:#9ca3af;text-decoration:none;">Instagram</a>
+              <a href="https://instagram.com/thedesigncrew" style="color:#9ca3af;text-decoration:none;">Instagram</a>
             </p>
           </td>
         </tr>
