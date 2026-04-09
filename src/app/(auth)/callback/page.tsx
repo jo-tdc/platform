@@ -1,36 +1,35 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function CallbackPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
     async function handleCallback() {
       const supabase = createClient()
+
+      // Lire les params directement depuis window.location (évite useSearchParams + Suspense)
+      const searchParams = new URLSearchParams(window.location.search)
       const code = searchParams.get('code')
       const next = searchParams.get('next') ?? '/dashboard'
 
       let sessionOk = false
 
       if (code) {
-        // Flow PKCE (Google OAuth, etc.)
+        // Flow PKCE (Google OAuth)
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) sessionOk = true
       } else {
         // Flow implicite — tokens dans le hash fragment
-        const hash = window.location.hash
-        if (hash) {
-          const params = new URLSearchParams(hash.replace('#', ''))
-          const access_token = params.get('access_token')
-          const refresh_token = params.get('refresh_token')
-          if (access_token && refresh_token) {
-            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (!error) sessionOk = true
-          }
+        const params = new URLSearchParams(window.location.hash.replace('#', ''))
+        const access_token = params.get('access_token')
+        const refresh_token = params.get('refresh_token')
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+          if (!error) sessionOk = true
         }
       }
 
@@ -39,14 +38,12 @@ export default function CallbackPage() {
         return
       }
 
-      // Sync utilisateur (upsert public.users + plan free si aucun plan)
       await fetch('/api/auth/sync', { method: 'POST' })
-
       router.replace(next)
     }
 
     handleCallback()
-  }, [router, searchParams])
+  }, [router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
