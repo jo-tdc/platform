@@ -8,9 +8,14 @@ function buildEmail(p: {
   bodyLines: string[]
   ctaText: string
   ctaUrl: string
+  postCtaLines?: string[]
 }): string {
   const bodyHtml = p.bodyLines
     .map((line) => `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">${line}</p>`)
+    .join('')
+
+  const postCtaHtml = (p.postCtaLines ?? [])
+    .map((line) => `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:0 0 4px;">${line}</p>`)
     .join('')
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -57,6 +62,7 @@ function buildEmail(p: {
               </tr>
             </table>
             <p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:20px 0 0;">Ce lien est à usage unique et expire dans 24h.</p>
+            ${postCtaHtml ? `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:28px 0 0;">&nbsp;</p>${postCtaHtml}` : ''}
           </td>
         </tr>
 
@@ -140,16 +146,19 @@ export function emailFirstConnection(magicLink: string): { subject: string; html
 
 export function emailReturningUser(magicLink: string): { subject: string; html: string } {
   return {
-    subject: 'Ton lien de connexion',
+    subject: 'Accéder à la plateforme',
     html: buildEmail({
-      title: 'Ton lien de connexion',
+      title: 'Accéder à la plateforme',
       bodyLines: [
         'Bonjour,',
-        'Tu as demandé un lien pour te connecter à <strong>All-round Design Hub</strong>.',
-        'Clique sur le bouton ci-dessous pour accéder à ta formation.',
+        "Tu as demandé à pouvoir te connecter à la plateforme d'apprentissage The Design Crew. Tu peux y accéder en cliquant sur le bouton ci-dessous.",
       ],
-      ctaText: 'Se connecter',
+      ctaText: 'Accéder',
       ctaUrl: magicLink,
+      postCtaLines: [
+        "N'hésite pas à me contacter si tu as des questions,",
+        'Zélia',
+      ],
     }),
   }
 }
