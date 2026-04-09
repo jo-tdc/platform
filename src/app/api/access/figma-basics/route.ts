@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hubspotToken}` },
         body: JSON.stringify({
           filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
-          properties: ['email', 'hs_object_id'],
+          properties: ['email', 'hs_object_id', 'touchpoints', 'first_touchpoint'],
         }),
       })
       const searchData = await searchRes.json()
@@ -90,10 +90,22 @@ export async function POST(request: Request) {
         const contactId = searchData.results?.[0]?.id
 
         if (contactId) {
+          const existingProps = searchData.results[0].properties ?? {}
+          const existingTouchpoints: string = existingProps.touchpoints ?? ''
+          const existingFirst: string = existingProps.first_touchpoint ?? ''
+
+          // Ajouter 'Figma Basics' sans écraser les touchpoints existants
+          const touchpointsList = existingTouchpoints
+            ? existingTouchpoints.split(';').map((t: string) => t.trim()).filter(Boolean)
+            : []
+          if (!touchpointsList.includes('Figma Basics')) touchpointsList.push('Figma Basics')
+          const newTouchpoints = touchpointsList.join(';')
+          const newFirstTouchpoint = existingFirst || 'Figma Basics'
+
           const patchRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contactId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${hubspotToken}` },
-            body: JSON.stringify({ properties: { first_touchpoint: 'Figma Basics', touchpoints: 'Figma Basics' } }),
+            body: JSON.stringify({ properties: { first_touchpoint: newFirstTouchpoint, touchpoints: newTouchpoints } }),
           })
           const patchData = await patchRes.json()
           if (!patchRes.ok) {
