@@ -18,8 +18,8 @@ export async function GET() {
 
   const { data, error } = await service
     .from('cohorts')
-    .select('id, name, is_open')
-    .order('name')
+    .select('id, name, batch_number, is_open')
+    .order('batch_number', { ascending: true, nullsFirst: false })
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 

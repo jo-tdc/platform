@@ -14,7 +14,7 @@ const PLANS: { value: PlanValue; label: string; color: string }[] = [
   { value: 'admin',        label: 'Admin',        color: 'bg-red-50 text-red-700' },
 ]
 
-type Cohort = { id: string; name: string; is_open: boolean }
+type Cohort = { id: string; name: string; batch_number: number | null; is_open: boolean }
 
 type User = {
   id: string
@@ -37,70 +37,76 @@ function PlanBadge({ plan }: { plan: PlanValue | null }) {
   )
 }
 
-function PlanDropdown({ userId, current, onChanged }: { userId: string; current: PlanValue | null; onChanged: (plan: PlanValue) => void }) {
-  const [open, setOpen] = useState(false)
+function PlanModal({ userId, currentPlans, onChanged, onClose }: {
+  userId: string
+  currentPlans: PlanValue[]
+  onChanged: (plans: PlanValue[]) => void
+  onClose: () => void
+}) {
+  const [selected, setSelected] = useState<PlanValue[]>(currentPlans)
   const [saving, setSaving] = useState(false)
-  const [dropPos, setDropPos] = useState({ top: 0, left: 0 })
-  const btnRef = useRef<HTMLButtonElement>(null)
 
-  function handleOpen() {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setDropPos({ top: rect.bottom + 4, left: rect.left })
-    }
-    setOpen((v) => !v)
+  function toggle(plan: PlanValue) {
+    setSelected((prev) =>
+      prev.includes(plan) ? prev.filter((p) => p !== plan) : [...prev, plan]
+    )
   }
 
-  async function handleSelect(plan: PlanValue) {
-    if (plan === current) { setOpen(false); return }
+  async function handleSave() {
     setSaving(true)
-    setOpen(false)
-    const res = await fetch(`/api/admin/users/${userId}/plan`, {
-      method: 'PATCH',
+    const res = await fetch(`/api/admin/users/${userId}/plans`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ plans: selected }),
     })
     if (res.ok) {
-      onChanged(plan)
+      onChanged(selected)
+      onClose()
     } else {
       const data = await res.json()
-      alert(`Erreur : ${data.error ?? 'Impossible de changer le plan'}`)
+      alert(`Erreur : ${data.error ?? 'Impossible de sauvegarder'}`)
     }
     setSaving(false)
   }
 
   return (
-    <div>
-      <button
-        ref={btnRef}
-        onClick={handleOpen}
-        disabled={saving}
-        className="flex items-center gap-1.5 disabled:opacity-50"
-      >
-        <PlanBadge plan={current} />
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-gray-400">
-          <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden min-w-[120px]"
-            style={{ top: dropPos.top, left: dropPos.left }}
-          >
-            {PLANS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => handleSelect(p.value)}
-                className={`w-full text-left px-3 py-2 text-xs transition-colors hover:bg-gray-50 ${p.value === current ? 'font-semibold text-gray-900' : 'text-gray-700'}`}
-              >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-xs mx-4">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Modifier les plans</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-5 py-3 space-y-1">
+          {PLANS.map((p) => (
+            <label key={p.value} className="flex items-center gap-3 py-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={selected.includes(p.value)}
+                onChange={() => toggle(p.value)}
+                className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+              />
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.color}`}>
                 {p.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        <div className="px-5 py-4 border-t border-gray-100">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Sauvegarde…' : 'Sauvegarder'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -195,7 +201,9 @@ function InviteModal({ cohorts, onClose, onInvited }: { cohorts: Cohort[]; onClo
                 {cohorts.length === 0 ? (
                   <option value="">Aucun batch disponible</option>
                 ) : cohorts.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.batch_number != null ? `Batch ${c.batch_number}` : c.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -248,6 +256,7 @@ export default function AdminCohortsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('all')
   const [showInvite, setShowInvite] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [planModalUserId, setPlanModalUserId] = useState<string | null>(null)
 
   async function loadAll() {
     const [usersRes, cohortsRes] = await Promise.all([
@@ -261,8 +270,8 @@ export default function AdminCohortsPage() {
 
   useEffect(() => { loadAll() }, [])
 
-  function handlePlanChanged(userId: string, plan: PlanValue) {
-    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, plan } : u))
+  function handlePlansChanged(userId: string, plans: PlanValue[]) {
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, plans, plan: plans[0] ?? null } : u))
   }
 
   async function handleDelete(userId: string, email: string) {
@@ -357,12 +366,15 @@ export default function AdminCohortsPage() {
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 text-gray-900 font-medium">{u.email}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <PlanDropdown userId={u.id} current={u.plan} onChanged={(plan) => handlePlanChanged(u.id, plan)} />
-                      {u.plans.includes('starter_pack') && u.plan !== 'starter_pack' && (
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700">Starter Pack</span>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => setPlanModalUserId(u.id)}
+                      className="flex items-center gap-1.5 flex-wrap hover:opacity-75 transition-opacity text-left"
+                    >
+                      {u.plans.length === 0
+                        ? <span className="text-xs text-gray-400 italic">aucun</span>
+                        : u.plans.map((p) => <PlanBadge key={p} plan={p} />)
+                      }
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     {u.cohort_name
@@ -402,6 +414,19 @@ export default function AdminCohortsPage() {
           onInvited={loadAll}
         />
       )}
+
+      {planModalUserId && (() => {
+        const u = users.find((u) => u.id === planModalUserId)
+        if (!u) return null
+        return (
+          <PlanModal
+            userId={u.id}
+            currentPlans={u.plans}
+            onChanged={(plans) => handlePlansChanged(u.id, plans)}
+            onClose={() => setPlanModalUserId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

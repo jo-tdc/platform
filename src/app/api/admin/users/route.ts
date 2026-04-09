@@ -29,7 +29,7 @@ export async function GET() {
   // Récupère tous les membres de cohorte avec le nom du batch
   const { data: members } = await service
     .from('cohort_members')
-    .select('user_id, cohort_id, cohorts(name)')
+    .select('user_id, cohort_id, cohorts(name, batch_number)')
 
   // Grouper tous les plans par user_id
   const plansMap = new Map<string, string[]>()
@@ -43,11 +43,16 @@ export async function GET() {
     admin: 7, editor: 6, bootcamp: 5, pro: 4, trial: 3, free: 2, starter_pack: 1,
   }
 
-  type MemberRow = { user_id: string; cohort_id: string; cohorts: { name: string } | null }
+  type MemberRow = { user_id: string; cohort_id: string; cohorts: { name: string; batch_number: number | null } | null }
   const cohortMap = new Map(
     ((members ?? []) as unknown as MemberRow[]).map((m) => [
       m.user_id,
-      { cohort_id: m.cohort_id, cohort_name: m.cohorts?.name ?? null },
+      {
+        cohort_id: m.cohort_id,
+        cohort_name: m.cohorts?.batch_number != null
+          ? `Batch ${m.cohorts.batch_number}`
+          : (m.cohorts?.name ?? null),
+      },
     ])
   )
 

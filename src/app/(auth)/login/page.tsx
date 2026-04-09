@@ -15,23 +15,20 @@ export default function LoginPage() {
     setLoading(true)
     setMessage(null)
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
-      },
+    const res = await fetch('/api/auth/magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
     })
 
-    if (error) {
-      setMessage({ type: 'error', text: error.message })
-    } else {
-      setMessage({
-        type: 'success',
-        text: 'Lien de connexion envoyé ! Vérifie ta boîte mail.',
-      })
-    }
-
+    const data = await res.json()
     setLoading(false)
+
+    if (!res.ok) {
+      setMessage({ type: 'error', text: data.error ?? 'Une erreur est survenue.' })
+    } else {
+      setMessage({ type: 'success', text: 'Lien de connexion envoyé ! Vérifie ta boîte mail.' })
+    }
   }
 
   async function handleGoogleLogin() {
