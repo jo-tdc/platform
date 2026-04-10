@@ -9,6 +9,7 @@ function buildEmail(p: {
   ctaText: string
   ctaUrl: string
   postCtaLines?: string[]
+  showExpiry?: boolean
 }): string {
   const bodyHtml = p.bodyLines
     .map((line) => `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">${line}</p>`)
@@ -61,7 +62,7 @@ function buildEmail(p: {
                 </td>
               </tr>
             </table>
-            <p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:20px 0 0;">Ce lien est à usage unique et expire dans 24h.</p>
+            ${p.showExpiry !== false ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:20px 0 0;">Ce lien est à usage unique et expire dans 24h.</p>` : ''}
             ${postCtaHtml ? `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:28px 0 0;">&nbsp;</p>${postCtaHtml}` : ''}
           </td>
         </tr>
@@ -69,7 +70,7 @@ function buildEmail(p: {
         <!-- Signature -->
         <tr>
           <td bgcolor="#ffffff" style="padding:0 32px 32px;">
-            <p style="font-family:Arial,sans-serif;font-size:14px;color:#374151;margin:0 0 16px;">À bientôt,<br /><strong>Zélia</strong></p>
+            ${!postCtaHtml ? `<p style="font-family:Arial,sans-serif;font-size:14px;color:#374151;margin:0 0 16px;">À bientôt,<br /><strong>Zélia</strong></p>` : ''}
             <table cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
               <tr>
                 <td style="padding:16px 20px;">
@@ -80,7 +81,7 @@ function buildEmail(p: {
                       </td>
                       <td style="vertical-align:middle;">
                         <p style="font-family:Arial,sans-serif;font-size:14px;font-weight:700;color:#111827;margin:0 0 2px;">Zélia</p>
-                        <p style="font-family:Arial,sans-serif;font-size:13px;color:#6b7280;margin:0 0 6px;">Fondatrice — The Design Crew</p>
+                        <p style="font-family:Arial,sans-serif;font-size:13px;color:#6b7280;margin:0 0 6px;">Responsable Bootcamp — The Design Crew</p>
                         <p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:0;">zelia@thedesigncrew.co</p>
                       </td>
                     </tr>
@@ -130,16 +131,21 @@ export function emailFigmaBasics(magicLink: string): { subject: string; html: st
 
 export function emailFirstConnection(magicLink: string): { subject: string; html: string } {
   return {
-    subject: 'Bienvenue sur All-round Design Hub',
+    subject: 'Bienvenue sur la plateforme The Design Crew',
     html: buildEmail({
-      title: 'Bienvenue sur la plateforme',
+      title: 'Bienvenue sur la plateforme The Design Crew',
       bodyLines: [
         'Bonjour,',
-        'Ton compte a bien été créé sur <strong>All-round Design Hub</strong>.',
-        'Clique sur le bouton ci-dessous pour accéder à ta formation.',
+        "Tu es invité à rejoindre la plateforme The Design Crew pour accéder à l'ensemble du contenu.",
       ],
       ctaText: 'Accéder à la plateforme',
       ctaUrl: magicLink,
+      showExpiry: false,
+      postCtaLines: [
+        "N'hésite pas à me contacter si tu as des questions,",
+        'À bientôt,',
+        'Zélia',
+      ],
     }),
   }
 }
