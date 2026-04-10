@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getUserActivePlan } from '@/lib/utils/access'
+import { getUserActivePlans } from '@/lib/utils/access'
 import type { PlanType } from '@/lib/utils/types'
 
 // GET /api/admin/cohorts — liste tous les batches
@@ -8,8 +8,8 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const plan = await getUserActivePlan(user.id)
-  if (!plan || !(['editor', 'admin'] as PlanType[]).includes(plan)) {
+  const callerPlans = await getUserActivePlans(user.id)
+  if (!callerPlans.some((p) => (['editor', 'admin'] as PlanType[]).includes(p))) {
     return Response.json({ error: 'Accès refusé' }, { status: 403 })
   }
 

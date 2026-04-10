@@ -1,5 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { getUserActivePlan } from '@/lib/utils/access'
+import { getUserActivePlans } from '@/lib/utils/access'
 import type { PlanType } from '@/lib/utils/types'
 import { z } from 'zod'
 
@@ -17,8 +17,8 @@ export async function PUT(request: Request, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const callerPlan = await getUserActivePlan(user.id)
-  if (!callerPlan || !(['editor', 'admin'] as PlanType[]).includes(callerPlan)) {
+  const callerPlans = await getUserActivePlans(user.id)
+  if (!callerPlans.some((p) => (['editor', 'admin'] as PlanType[]).includes(p))) {
     return Response.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
