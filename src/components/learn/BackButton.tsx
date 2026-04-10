@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 
-export default function BackButton() {
+export default function BackButton({ href }: { href: string }) {
   const router = useRouter()
   return (
     <button
-      onClick={() => router.back()}
+      onClick={() => router.push(href)}
       className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
     >
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

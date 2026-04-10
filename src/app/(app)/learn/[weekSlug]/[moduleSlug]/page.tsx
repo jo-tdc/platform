@@ -18,6 +18,7 @@ type ModuleRow = {
   asset_url: string | null
   asset_type: 'video' | 'pdf' | 'image' | null
   week_id: string
+  weeks: { content_id: string | null } | null
 }
 
 export default async function ModulePage({ params }: Props) {
@@ -29,7 +30,7 @@ export default async function ModulePage({ params }: Props) {
 
   const modResult = await supabase
     .from('modules')
-    .select('id, title, description, required_plan, figma_url, asset_url, asset_type, week_id')
+    .select('id, title, description, required_plan, figma_url, asset_url, asset_type, week_id, weeks(content_id)')
     .eq('slug', moduleSlug)
     .eq('is_published', true)
     .limit(1)
@@ -44,7 +45,7 @@ export default async function ModulePage({ params }: Props) {
     <div className="flex flex-col flex-1 overflow-hidden bg-gray-950">
       {/* Header */}
       <header className="flex items-center gap-4 px-4 py-2.5 bg-gray-900 border-b border-gray-800 flex-shrink-0">
-        <BackButton />
+        <BackButton href={`/learn?week=${weekSlug}${module.weeks?.content_id ? `&content=${module.weeks.content_id}` : ''}`} />
         <div className="w-px h-4 bg-gray-700" />
         <h1 className="text-sm font-medium text-white truncate">{module.title}</h1>
         {module.figma_url && (
