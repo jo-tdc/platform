@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 const Schema = z.object({
   email: z.string().email(),
-  plan: z.enum(['free', 'trial', 'bootcamp', 'pro', 'editor', 'admin']),
+  plan: z.enum(['free', 'trial', 'bootcamp', 'pro', 'editor', 'admin', 'starter_pack']),
   cohortId: z.string().uuid().optional(),
 })
 
