@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { createStreamResponse, createStreamResponseWithAttachments } from '@/lib/ai/stream'
 import type { FileAttachment } from '@/lib/ai/stream'
 import { compileAgentPrompt } from '@/lib/ai/compile-agent-prompt'
@@ -66,6 +66,8 @@ export async function POST(request: Request, { params }: Params) {
     messages = parsed.data.messages as ChatMessage[]
   }
 
+  const service = createServiceClient()
+
   type AgentRow = {
     compiled_prompt: string | null
     context_values: Record<string, string> | null
@@ -74,7 +76,7 @@ export async function POST(request: Request, { params }: Params) {
   }
   type AgentResult = { data: AgentRow | null; error: { message: string } | null }
 
-  const agentResult = (await supabase
+  const agentResult = (await service
     .from('project_agents')
     .select('*, agent_templates(*), projects!inner(user_id, brief_summary)')
     .eq('id', agentId)
@@ -97,7 +99,7 @@ export async function POST(request: Request, { params }: Params) {
     const contextValues = agentRow.context_values ?? {}
     systemPrompt = compileAgentPrompt(agentRow.agent_templates, contextValues, briefSummary)
 
-    await supabase
+    await service
       .from('project_agents')
       .update({ compiled_prompt: systemPrompt })
       .eq('id', agentId)

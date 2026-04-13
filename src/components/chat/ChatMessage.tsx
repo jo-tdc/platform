@@ -3,22 +3,31 @@ import ReactMarkdown from 'react-markdown'
 type Props = {
   role: 'user' | 'assistant'
   content: string
+  agentIcon?: string
+  agentLabel?: string
 }
 
-export default function ChatMessage({ role, content }: Props) {
+export default function ChatMessage({ role, content, agentIcon, agentLabel }: Props) {
   const isUser = role === 'user'
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {/* Avatar */}
-      <div
-        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
-          isUser
-            ? 'bg-gray-900 text-white'
-            : 'bg-gray-100 text-gray-600 border border-gray-200'
-        }`}
-      >
-        {isUser ? 'T' : 'AI'}
+      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+        <div
+          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+            isUser
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-600 border border-gray-200'
+          }`}
+        >
+          {isUser ? 'T' : (agentIcon ?? 'AI')}
+        </div>
+        {!isUser && agentLabel && (
+          <span className="text-[10px] text-gray-400 leading-none whitespace-nowrap max-w-[56px] text-center truncate">
+            {agentLabel}
+          </span>
+        )}
       </div>
 
       {/* Bubble */}

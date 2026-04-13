@@ -4,6 +4,11 @@ import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
 import ChatMessage from '@/components/chat/ChatMessage'
 import type { ChatMessage as ChatMessageType } from '@/lib/utils/types'
 
+type DisplayMessage = ChatMessageType & {
+  agentIcon?: string
+  agentLabel?: string
+}
+
 type PendingFile = {
   file: File
   previewUrl?: string // pour les images
@@ -60,7 +65,7 @@ function getContextPayload(selected: SelectedAgent, projectId: string): Record<s
 export default function PracticeChatWithAgents({ projectId, agents }: Props) {
   const [selected, setSelected] = useState<SelectedAgent>({ type: 'coach' })
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [messages, setMessages] = useState<ChatMessageType[]>([])
+  const [messages, setMessages] = useState<DisplayMessage[]>([])
   const [streaming, setStreaming] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [loadingHistory, setLoadingHistory] = useState(true)
@@ -173,11 +178,16 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
       ? files.map((f) => `📎 ${f.name}`).join('\n')
       : content + (files.length > 0 ? '\n' + files.map((f) => `📎 ${f.name}`).join('\n') : '')
 
-    const userMessage: ChatMessageType = { role: 'user', content: displayContent }
+    const currentIcon = selected.type === 'coach'
+      ? '🎯'
+      : resolveIcon(selected.agent.agent_templates.icon)
+    const currentLabel = getAgentLabel(selected)
+
+    const userMessage: DisplayMessage = { role: 'user', content: displayContent }
     const apiMessages: ChatMessageType[] = [...messages, { role: 'user', content: content || '(voir pièce jointe)' }]
     setMessages([...messages, userMessage])
     setStreaming(true)
-    setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
+    setMessages((prev) => [...prev, { role: 'assistant', content: '', agentIcon: currentIcon, agentLabel: currentLabel }])
 
     let finalAssistantContent = ''
 
@@ -208,10 +218,13 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }))
-        setMessages((prev) => [
-          ...prev.slice(0, -1),
-          { role: 'assistant', content: `Erreur : ${err.error ?? 'Erreur inconnue'}` },
-        ])
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          return [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: `Erreur : ${err.error ?? 'Erreur inconnue'}`, agentIcon: last?.agentIcon, agentLabel: last?.agentLabel },
+          ]
+        })
         return
       }
 
@@ -225,18 +238,24 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
         const { done, value } = await reader.read()
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
-        setMessages((prev) => [
-          ...prev.slice(0, -1),
-          { role: 'assistant', content: accumulated },
-        ])
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          return [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: accumulated, agentIcon: last?.agentIcon, agentLabel: last?.agentLabel },
+          ]
+        })
       }
 
       finalAssistantContent = accumulated
     } catch {
-      setMessages((prev) => [
-        ...prev.slice(0, -1),
-        { role: 'assistant', content: 'Une erreur réseau est survenue. Réessaie.' },
-      ])
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        return [
+          ...prev.slice(0, -1),
+          { role: 'assistant', content: 'Une erreur réseau est survenue. Réessaie.', agentIcon: last?.agentIcon, agentLabel: last?.agentLabel },
+        ]
+      })
     } finally {
       setStreaming(false)
     }
@@ -273,7 +292,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
           </p>
         )}
         {messages.map((msg, i) => (
-          <ChatMessage key={i} role={msg.role} content={msg.content} />
+          <ChatMessage key={i} role={msg.role} content={msg.content} agentIcon={msg.agentIcon} agentLabel={msg.agentLabel} />
         ))}
         {streaming && messages[messages.length - 1]?.content === '' && (
           <div className="flex gap-3">
