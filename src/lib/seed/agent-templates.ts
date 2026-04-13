@@ -39,11 +39,11 @@ export const agentTemplates: AgentTemplateSeed[] = [
       {
         key: 'key_metrics',
         label: 'Métriques clés actuelles',
-        placeholder: 'ex. MRR, DAU, taux d'activation, NPS, churn, CAC',
+        placeholder: "ex. MRR, DAU, taux d'activation, NPS, churn, CAC",
       },
       {
         key: 'team_size',
-        label: 'Taille de l'équipe produit/tech',
+        label: "Taille de l'équipe produit/tech",
         placeholder: 'ex. solo, 2 devs + 1 designer, équipe de 10',
       },
       {
@@ -134,18 +134,18 @@ Court et dense. Une ou deux questions maximum par réponse. Quand tu fais un con
       {
         key: 'user_segment',
         label: 'Segment utilisateur principal',
-        placeholder: 'ex. PME françaises 10-50 salariés, parents d'enfants 6-12 ans, freelances créatifs',
+        placeholder: "ex. PME françaises 10-50 salariés, parents d'enfants 6-12 ans, freelances créatifs",
       },
       {
         key: 'key_assumptions',
         label: 'Tes hypothèses principales non validées',
-        placeholder: 'Ce que tu crois vrai sur tes utilisateurs mais que tu n'as pas encore prouvé',
+        placeholder: "Ce que tu crois vrai sur tes utilisateurs mais que tu n'as pas encore prouvé",
       },
       {
         key: 'research_constraint',
         label: 'Contraintes de recherche',
         placeholder:
-          'ex. pas d'accès direct aux utilisateurs, budget nul, délai de 2 semaines, équipe solo',
+          "ex. pas d'accès direct aux utilisateurs, budget nul, délai de 2 semaines, équipe solo",
       },
       {
         key: 'decision_to_make',
@@ -239,7 +239,7 @@ Dense mais accessible. Une question principale bien construite par réponse. Qua
         key: 'known_constraints',
         label: 'Contraintes connues',
         placeholder:
-          'ex. pas d'app mobile, budget marketing nul, doit fonctionner offline — laisser vide pour la phase de divergence pure',
+          "ex. pas d'app mobile, budget marketing nul, doit fonctionner offline — laisser vide pour la phase de divergence pure",
       },
       {
         key: 'inspiration_domains',
