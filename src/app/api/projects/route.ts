@@ -31,6 +31,7 @@ export async function GET() {
 }
 
 // POST /api/projects — créer un nouveau projet
+// Ajoute automatiquement tous les agent_templates publiés au projet créé.
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -67,5 +68,23 @@ export async function POST(request: Request) {
     return Response.json({ error: result.error.message }, { status: 500 })
   }
 
-  return Response.json({ project: result.data }, { status: 201 })
+  const project = result.data as { id: string }
+
+  // Ajouter tous les agent_templates publiés au projet
+  const { data: templates } = await supabase
+    .from('agent_templates')
+    .select('id')
+    .eq('is_published', true)
+    .order('position', { ascending: true })
+
+  if (templates && templates.length > 0) {
+    await supabase.from('project_agents').insert(
+      templates.map((t: { id: string }) => ({
+        project_id: project.id,
+        template_id: t.id,
+      }))
+    )
+  }
+
+  return Response.json({ project }, { status: 201 })
 }

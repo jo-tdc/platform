@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 const SaveSchema = z.object({
@@ -27,9 +27,10 @@ export async function POST(request: Request) {
   }
 
   const { sessionId, userMessage, assistantMessage } = parsed.data
+  const service = createServiceClient()
 
   // Verify the session belongs to this user
-  const sessionCheck = await supabase
+  const sessionCheck = await service
     .from('ai_sessions')
     .select('id')
     .eq('id', sessionId)
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   }
 
   // Insert both messages
-  const insertResult = await supabase
+  const insertResult = await service
     .from('ai_messages')
     .insert([
       { session_id: sessionId, role: 'user', content: userMessage },

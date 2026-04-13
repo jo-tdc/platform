@@ -49,7 +49,34 @@ export default async function ProjectPage({ params }: Props) {
     .eq('project_id', projectId)
     .order('created_at')
 
-  const agents = agentsResult.data as AgentWithTemplate[] | null ?? []
+  let agents = agentsResult.data as AgentWithTemplate[] | null ?? []
+
+  // Si le projet n'a aucun agent, on ajoute automatiquement tous les templates publiés
+  if (agents.length === 0) {
+    const { data: templates } = await supabase
+      .from('agent_templates')
+      .select('id')
+      .eq('is_published', true)
+      .order('position', { ascending: true })
+
+    if (templates && templates.length > 0) {
+      await supabase.from('project_agents').insert(
+        templates.map((t: { id: string }) => ({
+          project_id: projectId,
+          template_id: t.id,
+        }))
+      )
+
+      // Recharger les agents nouvellement créés
+      const refreshed = await supabase
+        .from('project_agents')
+        .select('id, custom_name, context_values, agent_templates(name, description, icon, context_variables)')
+        .eq('project_id', projectId)
+        .order('created_at')
+
+      agents = refreshed.data as AgentWithTemplate[] | null ?? []
+    }
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">

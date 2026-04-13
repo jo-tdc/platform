@@ -5,9 +5,13 @@ const QuerySchema = z.object({
   projectId: z.string().uuid(),
 })
 
-// GET /api/practice/chat/history?projectId={id}
-// Finds or creates an ai_session for this user+project, returns all messages
-export async function GET(request: Request) {
+type Params = { params: Promise<{ id: string }> }
+
+// GET /api/practice/agent/[id]/history?projectId={id}
+// Finds or creates an ai_session for this user+agent+project, returns all messages
+export async function GET(request: Request, { params }: Params) {
+  const { id: agentId } = await params
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -22,25 +26,30 @@ export async function GET(request: Request) {
   const { projectId } = parsed.data
   const service = createServiceClient()
 
-  // Verify user owns this project
-  const projectResult = await service
-    .from('projects')
-    .select('id')
-    .eq('id', projectId)
-    .eq('user_id', user.id)
-    .single()
+  // Verify agent belongs to a project owned by this user
+  type AgentCheck = { data: { id: string; projects: { user_id: string } } | null; error: { message: string } | null }
+  const agentResult = (await service
+    .from('project_agents')
+    .select('id, projects!inner(user_id)')
+    .eq('id', agentId)
+    .single()) as unknown as AgentCheck
 
-  if (projectResult.error || !projectResult.data) {
-    return Response.json({ error: 'Projet introuvable' }, { status: 404 })
+  if (agentResult.error || !agentResult.data) {
+    return Response.json({ error: 'Agent introuvable' }, { status: 404 })
   }
 
-  // Find existing session for this user+project
+  if (agentResult.data.projects.user_id !== user.id) {
+    return Response.json({ error: 'Accès refusé' }, { status: 403 })
+  }
+
+  // Find existing session for this user+agent+project
   const sessionResult = await service
     .from('ai_sessions')
     .select('id')
     .eq('user_id', user.id)
     .eq('project_id', projectId)
-    .eq('agent_type', 'practice_chat')
+    .eq('project_agent_id', agentId)
+    .eq('agent_type', 'practice_agent')
     .order('started_at', { ascending: false })
     .limit(1)
 
@@ -49,13 +58,13 @@ export async function GET(request: Request) {
   if (sessionResult.data && sessionResult.data.length > 0) {
     sessionId = sessionResult.data[0].id
   } else {
-    // Create a new session
     const newSession = await service
       .from('ai_sessions')
       .insert({
         user_id: user.id,
         project_id: projectId,
-        agent_type: 'practice_chat',
+        project_agent_id: agentId,
+        agent_type: 'practice_agent',
       })
       .select('id')
       .single()

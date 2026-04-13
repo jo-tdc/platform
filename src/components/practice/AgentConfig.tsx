@@ -27,7 +27,7 @@ type Props = {
   onUpdate: (agentId: string, updates: { custom_name?: string; context_values?: Record<string, string> }) => Promise<void>
 }
 
-export default function AgentConfig({ agent, onUpdate }: Props) {
+export default function AgentConfig({ agent, projectId, onUpdate }: Props) {
   const [contextValues, setContextValues] = useState<Record<string, string>>(
     agent.context_values ?? {}
   )
@@ -38,11 +38,14 @@ export default function AgentConfig({ agent, onUpdate }: Props) {
   const icon = agent.agent_templates.icon ?? '🤖'
 
   // Récupérer les variables de contexte définies dans le template
-  const contextVariables = agent.agent_templates.context_variables
-    ? Object.entries(agent.agent_templates.context_variables).map(([key, label]) => ({
-        key,
-        label: String(label),
-      })) as ContextVariable[]
+  // Supporte le format tableau [{ key, label, placeholder }]
+  const contextVariables: ContextVariable[] = agent.agent_templates.context_variables
+    ? Array.isArray(agent.agent_templates.context_variables)
+      ? (agent.agent_templates.context_variables as ContextVariable[])
+      : Object.entries(agent.agent_templates.context_variables).map(([key, label]) => ({
+          key,
+          label: String(label),
+        }))
     : []
 
   async function handleSaveContext() {
@@ -86,6 +89,8 @@ export default function AgentConfig({ agent, onUpdate }: Props) {
             apiRoute={`/api/practice/agent/${agent.id}`}
             placeholder={`Parle avec ${name}...`}
             welcomeMessage={`Je suis ${name}. Comment puis-je t'aider sur ce projet ?`}
+            projectId={projectId}
+            agentId={agent.id}
           />
         </div>
       ) : (
@@ -106,7 +111,7 @@ export default function AgentConfig({ agent, onUpdate }: Props) {
                     onChange={(e) =>
                       setContextValues((prev) => ({ ...prev, [variable.key]: e.target.value }))
                     }
-                    placeholder={variable.placeholder}
+                    placeholder={variable.placeholder ?? ''}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                   />
                 </div>

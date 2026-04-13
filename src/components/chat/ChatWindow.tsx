@@ -12,6 +12,8 @@ type Props = {
   welcomeMessage?: string
   // When provided, chat history is persisted and restored on mount
   projectId?: string
+  // When provided alongside projectId, loads agent-specific history
+  agentId?: string
 }
 
 export default function ChatWindow({
@@ -20,6 +22,7 @@ export default function ChatWindow({
   placeholder,
   welcomeMessage,
   projectId,
+  agentId,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [streaming, setStreaming] = useState(false)
@@ -31,7 +34,11 @@ export default function ChatWindow({
   useEffect(() => {
     if (!projectId) return
 
-    fetch(`/api/practice/chat/history?projectId=${projectId}`)
+    const historyUrl = agentId
+      ? `/api/practice/agent/${agentId}/history?projectId=${projectId}`
+      : `/api/practice/chat/history?projectId=${projectId}`
+
+    fetch(historyUrl)
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
@@ -50,7 +57,7 @@ export default function ChatWindow({
       })
       .catch((err) => console.error('[ChatWindow] history fetch failed:', err))
       .finally(() => setLoadingHistory(false))
-  }, [projectId])
+  }, [projectId, agentId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
