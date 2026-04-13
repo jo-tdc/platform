@@ -81,33 +81,32 @@ export function createStreamResponseWithAttachments(
   }))
 
   const lastMessage = messages[messages.length - 1]
-  type ContentBlock = Anthropic.TextBlockParam | Anthropic.ImageBlockParam | Anthropic.RequestDocumentBlock
-
-  const contentBlocks: ContentBlock[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contentBlocks: any[] = []
 
   for (const file of attachments) {
     if (file.type === 'application/pdf') {
       contentBlocks.push({
         type: 'document',
         source: { type: 'base64', media_type: 'application/pdf', data: file.base64 },
-      } as Anthropic.RequestDocumentBlock)
+      })
     } else if ((SUPPORTED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
       contentBlocks.push({
         type: 'image',
         source: { type: 'base64', media_type: file.type as SupportedImageType, data: file.base64 },
-      } as Anthropic.ImageBlockParam)
+      })
     } else {
-      // Texte brut, markdown, etc.
       contentBlocks.push({
         type: 'text',
         text: `--- Fichier joint : "${file.name}" ---\n${Buffer.from(file.base64, 'base64').toString('utf-8')}\n---`,
-      } as Anthropic.TextBlockParam)
+      })
     }
   }
 
-  contentBlocks.push({ type: 'text', text: lastMessage.content } as Anthropic.TextBlockParam)
+  contentBlocks.push({ type: 'text', text: lastMessage.content })
 
-  anthropicMessages.push({ role: 'user', content: contentBlocks })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  anthropicMessages.push({ role: 'user', content: contentBlocks as any })
 
   return buildStreamResponse(anthropicMessages, systemPrompt)
 }
