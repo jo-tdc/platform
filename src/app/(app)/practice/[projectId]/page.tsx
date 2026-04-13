@@ -44,7 +44,9 @@ export default async function ProjectPage({ params }: Props) {
     status: string
   }
 
-  const agentsResult = await supabase
+  const service = createServiceClient()
+
+  const agentsResult = await service
     .from('project_agents')
     .select('id, custom_name, context_values, agent_templates(name, description, icon, context_variables)')
     .eq('project_id', projectId)
@@ -54,7 +56,6 @@ export default async function ProjectPage({ params }: Props) {
 
   // Si le projet n'a aucun agent, on s'assure que les templates existent puis on les assigne
   if (agents.length === 0) {
-    const service = createServiceClient()
 
     // Vérifier si la table agent_templates est peuplée
     let { data: templates } = await service

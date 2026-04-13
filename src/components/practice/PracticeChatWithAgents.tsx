@@ -291,23 +291,33 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
             Bonjour ! Je suis ton coach produit & design. Décris-moi où tu en es, et travaillons ensemble.
           </p>
         )}
-        {messages.map((msg, i) => (
-          <ChatMessage key={i} role={msg.role} content={msg.content} agentIcon={msg.agentIcon} agentLabel={msg.agentLabel} />
-        ))}
-        {streaming && messages[messages.length - 1]?.content === '' && (
-          <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-600">
-              AI
-            </div>
-            <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
-              <span className="inline-flex gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
-              </span>
-            </div>
-          </div>
-        )}
+        {messages.map((msg, i) => {
+          const isLastAndEmpty = i === messages.length - 1 && msg.role === 'assistant' && msg.content === ''
+          if (isLastAndEmpty) {
+            return (
+              <div key={i} className="flex gap-3">
+                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-600">
+                    {msg.agentIcon ?? 'AI'}
+                  </div>
+                  {msg.agentLabel && (
+                    <span className="text-[10px] text-gray-400 leading-none whitespace-nowrap max-w-[56px] text-center truncate">
+                      {msg.agentLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                  <span className="inline-flex gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
+                  </span>
+                </div>
+              </div>
+            )
+          }
+          return <ChatMessage key={i} role={msg.role} content={msg.content} agentIcon={msg.agentIcon} agentLabel={msg.agentLabel} />
+        })}
           <div ref={bottomRef} />
         </div>
       </div>
