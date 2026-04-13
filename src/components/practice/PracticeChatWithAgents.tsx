@@ -263,7 +263,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4">
         <div className="max-w-3xl mx-auto px-4 space-y-4">
