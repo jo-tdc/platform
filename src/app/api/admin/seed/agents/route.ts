@@ -36,7 +36,8 @@ export async function POST() {
 
   const { data, error } = await service
     .from('agent_templates')
-    .insert(agentTemplates)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(agentTemplates as any[])
     .select('id, name, position')
 
   if (error) {
