@@ -92,18 +92,9 @@ export async function POST(request: Request, { params }: Params) {
     return Response.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  let systemPrompt = agentRow.compiled_prompt
-
-  if (!systemPrompt) {
-    const briefSummary = agentRow.projects.brief_summary ?? 'Projet sans brief défini.'
-    const contextValues = agentRow.context_values ?? {}
-    systemPrompt = compileAgentPrompt(agentRow.agent_templates, contextValues, briefSummary)
-
-    await service
-      .from('project_agents')
-      .update({ compiled_prompt: systemPrompt })
-      .eq('id', agentId)
-  }
+  const briefSummary = agentRow.projects.brief_summary ?? 'Projet sans brief défini.'
+  const contextValues = agentRow.context_values ?? {}
+  const systemPrompt = compileAgentPrompt(agentRow.agent_templates, contextValues, briefSummary)
 
   if (attachments.length > 0) {
     return createStreamResponseWithAttachments(messages, systemPrompt, attachments)

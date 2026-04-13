@@ -81,11 +81,13 @@ export default async function ProjectPage({ params }: Props) {
     }
 
     if (templates && templates.length > 0) {
-      await service.from('project_agents').insert(
+      // ignoreSomeErrors + onConflict pour éviter les doublons si la contrainte UNIQUE existe
+      await service.from('project_agents').upsert(
         templates.map((t: { id: string }) => ({
           project_id: projectId,
           template_id: t.id,
-        }))
+        })),
+        { onConflict: 'project_id,template_id', ignoreDuplicates: true }
       )
 
       const refreshed = await service
