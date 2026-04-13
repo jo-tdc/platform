@@ -265,7 +265,8 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto py-4">
+        <div className="max-w-3xl mx-auto px-4 space-y-4">
         {messages.length === 0 && (
           <p className="text-sm text-gray-400 text-center py-8">
             Bonjour ! Je suis ton coach produit & design. Décris-moi où tu en es, et travaillons ensemble.
@@ -288,11 +289,13 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Zone de saisie avec sélecteur d'agent intégré */}
-      <div className="flex-shrink-0 px-4 pb-4">
+      <div className="flex-shrink-0 pb-4">
+        <div className="max-w-3xl mx-auto px-4">
         {/* Input caché pour la sélection de fichiers */}
         <input
           ref={fileInputRef}
@@ -449,6 +452,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
               </svg>
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

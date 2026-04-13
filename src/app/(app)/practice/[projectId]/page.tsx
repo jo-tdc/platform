@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { agentTemplates } from '@/lib/seed/agent-templates'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import ProjectWorkspace from '@/components/practice/ProjectWorkspace'
@@ -51,24 +52,42 @@ export default async function ProjectPage({ params }: Props) {
 
   let agents = agentsResult.data as AgentWithTemplate[] | null ?? []
 
-  // Si le projet n'a aucun agent, on ajoute automatiquement tous les templates publiés
+  // Si le projet n'a aucun agent, on s'assure que les templates existent puis on les assigne
   if (agents.length === 0) {
-    const { data: templates } = await supabase
+    const service = createServiceClient()
+
+    // Vérifier si la table agent_templates est peuplée
+    let { data: templates } = await service
       .from('agent_templates')
       .select('id')
       .eq('is_published', true)
       .order('position', { ascending: true })
 
+    // Si vide, on seed les templates automatiquement
+    if (!templates || templates.length === 0) {
+      await service
+        .from('agent_templates')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .insert(agentTemplates as any[])
+
+      const seeded = await service
+        .from('agent_templates')
+        .select('id')
+        .eq('is_published', true)
+        .order('position', { ascending: true })
+
+      templates = seeded.data
+    }
+
     if (templates && templates.length > 0) {
-      await supabase.from('project_agents').insert(
+      await service.from('project_agents').insert(
         templates.map((t: { id: string }) => ({
           project_id: projectId,
           template_id: t.id,
         }))
       )
 
-      // Recharger les agents nouvellement créés
-      const refreshed = await supabase
+      const refreshed = await service
         .from('project_agents')
         .select('id, custom_name, context_values, agent_templates(name, description, icon, context_variables)')
         .eq('project_id', projectId)
