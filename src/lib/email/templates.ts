@@ -120,11 +120,16 @@ export function emailFigmaBasics(magicLink: string): { subject: string; html: st
       title: 'Ton accès à Figma Basics',
       bodyLines: [
         'Bonjour,',
-        "Tu as désormais accès à l'ensemble des contenus <strong>Figma Basics</strong> sur All-round Design Hub.",
-        'Clique sur le bouton ci-dessous pour te connecter directement à la plateforme.',
+        "Tu as désormais accès à l'ensemble des contenus <strong>Figma Basics</strong> sur la plateforme d'apprentissage The Design Crew.",
       ],
       ctaText: 'Accéder à Figma Basics',
       ctaUrl: magicLink,
+      showExpiry: false,
+      postCtaLines: [
+        "N'hésite pas si tu as la moindre question,",
+        'À bientôt,',
+        'Zélia',
+      ],
     }),
   }
 }
