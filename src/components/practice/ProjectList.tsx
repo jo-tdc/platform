@@ -29,12 +29,12 @@ function formatLastActivity(dateStr: string | null): string {
   return `${day} ${month} ${date.getFullYear()}`
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  active: 'bg-green-50 text-green-700',
-  done: 'bg-blue-50 text-blue-700',
-  deleted: 'bg-red-50 text-red-700',
-  draft: 'bg-gray-100 text-gray-500',
-  archived: 'bg-gray-100 text-gray-500',
+const STATUS_BADGE: Record<string, { pill: string; dot: string }> = {
+  active:   { pill: 'bg-yellow-50 text-yellow-700', dot: 'bg-yellow-400' },
+  done:     { pill: 'bg-green-50 text-green-700',   dot: 'bg-green-500' },
+  deleted:  { pill: 'bg-red-50 text-red-700',       dot: 'bg-red-500' },
+  draft:    { pill: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400' },
+  archived: { pill: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-400' },
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -64,7 +64,7 @@ export default function ProjectList({ projects }: Props) {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {projects.map((project) => {
         const status = (project.status as string) ?? 'active'
-        const badgeClass = STATUS_BADGE[status] ?? STATUS_BADGE.active
+        const badge = STATUS_BADGE[status] ?? STATUS_BADGE.active
         const badgeLabel = STATUS_LABEL[status] ?? status
         const lastActivity = formatLastActivity(project.updated_at as string | null)
 
@@ -83,7 +83,8 @@ export default function ProjectList({ projects }: Props) {
                   <p className="text-xs text-gray-400 mt-1">{lastActivity}</p>
                 )}
               </div>
-              <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium mb-0.5 ${badgeClass}`}>
+              <span className={`flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full font-medium mb-0.5 ${badge.pill}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
                 {badgeLabel}
               </span>
             </div>
