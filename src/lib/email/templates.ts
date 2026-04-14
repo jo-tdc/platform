@@ -51,7 +51,7 @@ function buildEmail(p: {
           <td bgcolor="#ffffff" style="padding:32px 32px 40px;">
             <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:700;color:#111827;margin:0 0 20px;line-height:1.3;">${p.title}</h1>
             ${bodyHtml}
-            <p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:0 0 28px;">&nbsp;</p>
+            <p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:0 0 14px;">&nbsp;</p>
             <!-- CTA -->
             <table cellpadding="0" cellspacing="0" border="0">
               <tr>
@@ -63,7 +63,7 @@ function buildEmail(p: {
               </tr>
             </table>
             ${p.showExpiry !== false ? `<p style="font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;margin:20px 0 0;">Ce lien est à usage unique et expire dans 24h.</p>` : ''}
-            ${postCtaHtml ? `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:28px 0 0;">&nbsp;</p>${postCtaHtml}` : ''}
+            ${postCtaHtml ? `<p style="font-family:Arial,sans-serif;font-size:15px;color:#374151;line-height:1.7;margin:14px 0 0;">&nbsp;</p>${postCtaHtml}` : ''}
           </td>
         </tr>
 
@@ -136,7 +136,7 @@ export function emailFirstConnection(magicLink: string): { subject: string; html
       title: 'Bienvenue sur la plateforme The Design Crew',
       bodyLines: [
         'Bonjour,',
-        "Tu es invité à rejoindre la plateforme The Design Crew pour accéder à l'ensemble du contenu.",
+        "Nous t'invitons à rejoindre la plateforme The Design Crew pour accéder à l'ensemble du contenu.",
       ],
       ctaText: 'Accéder à la plateforme',
       ctaUrl: magicLink,
