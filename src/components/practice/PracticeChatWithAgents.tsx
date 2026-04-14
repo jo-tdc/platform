@@ -71,6 +71,7 @@ function detectRoutingAgent(
     content.includes('relève de') ||
     content.includes('relève davantage') ||
     content.includes('mieux placé') ||
+    content.includes('plus pertinent que moi') ||
     content.toLowerCase().includes('pose-lui directement')
 
   if (!hasRoutingSignal) return null
