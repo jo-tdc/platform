@@ -41,6 +41,8 @@ export default function ProjectStatusSelector({ projectId, initialStatus }: Prop
       setStatus(next)
       if (next === 'deleted') {
         router.push('/practice')
+      } else {
+        router.refresh()
       }
     }
 

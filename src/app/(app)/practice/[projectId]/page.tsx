@@ -113,18 +113,6 @@ export default async function ProjectPage({ params }: Props) {
         <span className="text-gray-200">|</span>
         <h1 className="text-sm font-medium text-gray-900 truncate">{project.name}</h1>
         <div className="ml-auto flex items-center gap-3">
-          <Link
-            href={`/practice/${projectId}/brief`}
-            className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            Brief
-          </Link>
-          <Link
-            href={`/practice/${projectId}/agents`}
-            className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            Agents
-          </Link>
           <ProjectStatusSelector projectId={project.id} initialStatus={project.status} />
         </div>
       </div>
