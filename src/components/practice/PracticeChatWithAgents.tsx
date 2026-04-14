@@ -275,8 +275,8 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
 
   if (loadingHistory) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <span className="text-sm text-gray-400">Chargement de l'historique…</span>
+      <div className="flex items-center justify-center h-full w-full">
+        <span className="text-sm text-gray-400">Chargement de l&apos;historique…</span>
       </div>
     )
   }
@@ -295,18 +295,18 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
           const isLastAndEmpty = i === messages.length - 1 && msg.role === 'assistant' && msg.content === ''
           if (isLastAndEmpty) {
             return (
-              <div key={i} className="flex gap-3">
-                <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-600">
-                    {msg.agentIcon ?? 'AI'}
+              <div key={i} className="flex gap-3 items-start">
+                <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-0.5">
+                  <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-500">
+                    {msg.agentIcon ?? '🤖'}
                   </div>
                   {msg.agentLabel && (
-                    <span className="text-[10px] text-gray-400 leading-none whitespace-nowrap max-w-[56px] text-center truncate">
+                    <span className="text-[9px] text-gray-400 leading-none whitespace-nowrap max-w-[52px] text-center truncate">
                       {msg.agentLabel}
                     </span>
                   )}
                 </div>
-                <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                <div className="pt-2">
                   <span className="inline-flex gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
