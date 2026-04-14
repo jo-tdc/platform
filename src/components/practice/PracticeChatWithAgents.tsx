@@ -7,6 +7,7 @@ import type { ChatMessage as ChatMessageType } from '@/lib/utils/types'
 type DisplayMessage = ChatMessageType & {
   agentIcon?: string
   agentLabel?: string
+  suggestedAgent?: SelectedAgent
 }
 
 type PendingFile = {
@@ -57,6 +58,34 @@ function getAgentLabel(selected: SelectedAgent): string {
 function getAgentIcon(selected: SelectedAgent): string {
   if (selected.type === 'coach') return '🎯'
   return resolveIcon(selected.agent.agent_templates.icon)
+}
+
+// Détecte si une réponse d'agent contient un renvoi vers un autre agent
+function detectRoutingAgent(
+  content: string,
+  agents: Agent[],
+  currentSelected: SelectedAgent
+): SelectedAgent | null {
+  const hasRoutingSignal =
+    content.includes('relève de') ||
+    content.includes('relève davantage') ||
+    content.includes('mieux placé') ||
+    content.toLowerCase().includes('pose-lui directement')
+
+  if (!hasRoutingSignal) return null
+
+  for (const agent of agents) {
+    if (content.includes(agent.agent_templates.name)) {
+      if (currentSelected.type === 'agent' && currentSelected.agent.id === agent.id) continue
+      return { type: 'agent', agent }
+    }
+  }
+
+  if (content.includes('Product Design Mentor') && currentSelected.type !== 'coach') {
+    return { type: 'coach' }
+  }
+
+  return null
 }
 
 function getApiRoute(selected: SelectedAgent): string {
@@ -255,6 +284,15 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
       }
 
       finalAssistantContent = accumulated
+
+      // Détecter un renvoi vers un autre agent et l'attacher au message
+      const suggested = detectRoutingAgent(finalAssistantContent, agents, selected)
+      if (suggested) {
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          return [...prev.slice(0, -1), { ...last, suggestedAgent: suggested }]
+        })
+      }
     } catch {
       setMessages((prev) => {
         const last = prev[prev.length - 1]
@@ -323,7 +361,25 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
               </div>
             )
           }
-          return <ChatMessage key={i} role={msg.role} content={msg.content} agentIcon={msg.agentIcon} agentLabel={msg.agentLabel} />
+          return (
+            <div key={i} className="flex flex-col gap-2">
+              <ChatMessage role={msg.role} content={msg.content} agentIcon={msg.agentIcon} agentLabel={msg.agentLabel} />
+              {msg.suggestedAgent && (
+                <div className="ml-9">
+                  <button
+                    onClick={() => selectAgent(msg.suggestedAgent!)}
+                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors font-medium shadow-sm"
+                  >
+                    <span className="text-sm leading-none">{getAgentIcon(msg.suggestedAgent)}</span>
+                    <span>Solliciter {getAgentLabel(msg.suggestedAgent)}</span>
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" className="text-gray-400">
+                      <path d="M2 5.5h7M6 2.5l3 3-3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          )
         })}
           <div ref={bottomRef} />
         </div>
