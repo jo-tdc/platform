@@ -38,7 +38,8 @@ export default function ProjectStatusSelector({ projectId, initialStatus }: Prop
     })
 
     if (!res.ok) {
-      // Revert si l'API échoue
+      const errBody = await res.json().catch(() => ({}))
+      console.error('[ProjectStatusSelector] PUT failed', res.status, errBody)
       setStatus(previous)
       return
     }
