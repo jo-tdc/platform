@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 const CreateProjectSchema = z.object({
@@ -70,15 +70,16 @@ export async function POST(request: Request) {
 
   const project = result.data as { id: string }
 
-  // Ajouter tous les agent_templates publiés au projet
-  const { data: templates } = await supabase
+  // Ajouter tous les agent_templates publiés au projet (service client pour bypasser RLS)
+  const service = createServiceClient()
+  const { data: templates } = await service
     .from('agent_templates')
     .select('id')
     .eq('is_published', true)
     .order('position', { ascending: true })
 
   if (templates && templates.length > 0) {
-    await supabase.from('project_agents').insert(
+    await service.from('project_agents').insert(
       templates.map((t: { id: string }) => ({
         project_id: project.id,
         template_id: t.id,
