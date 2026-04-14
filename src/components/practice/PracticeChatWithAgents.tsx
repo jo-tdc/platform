@@ -8,6 +8,7 @@ type DisplayMessage = ChatMessageType & {
   agentIcon?: string
   agentLabel?: string
   suggestedAgent?: SelectedAgent
+  originalQuery?: string // question initiale qui a déclenché le routing
 }
 
 type PendingFile = {
@@ -209,15 +210,24 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
     textareaRef.current?.focus()
   }
 
-  async function handleSend(content: string, files: File[] = []) {
+  // Switch vers un agent ET envoie automatiquement la question initiale à cet agent
+  function handleSwitchAndAsk(targetAgent: SelectedAgent, query: string) {
+    setSelected(targetAgent)
+    setDropdownOpen(false)
+    handleSend(query, [], targetAgent)
+  }
+
+  async function handleSend(content: string, files: File[] = [], agentOverride?: SelectedAgent) {
+    const activeAgent = agentOverride ?? selected
+
     const displayContent = files.length > 0 && !content
       ? files.map((f) => `📎 ${f.name}`).join('\n')
       : content + (files.length > 0 ? '\n' + files.map((f) => `📎 ${f.name}`).join('\n') : '')
 
-    const currentIcon = selected.type === 'coach'
+    const currentIcon = activeAgent.type === 'coach'
       ? '🎯'
-      : resolveIcon(selected.agent.agent_templates.icon)
-    const currentLabel = getAgentLabel(selected)
+      : resolveIcon(activeAgent.agent.agent_templates.icon)
+    const currentLabel = getAgentLabel(activeAgent)
 
     const userMessage: DisplayMessage = { role: 'user', content: displayContent }
     const apiMessages: ChatMessageType[] = [...messages, { role: 'user', content: content || '(voir pièce jointe)' }]
@@ -233,7 +243,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
     if (files.length > 0) {
       const formData = new FormData()
       formData.append('messages', JSON.stringify(apiMessages))
-      const payload = getContextPayload(selected, projectId)
+      const payload = getContextPayload(activeAgent, projectId)
       Object.entries(payload).forEach(([k, v]) => formData.append(k, v))
       files.forEach((f) => formData.append('files', f))
       body = formData
@@ -241,12 +251,12 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
       headers['Content-Type'] = 'application/json'
       body = JSON.stringify({
         messages: apiMessages,
-        ...getContextPayload(selected, projectId),
+        ...getContextPayload(activeAgent, projectId),
       })
     }
 
     try {
-      const response = await fetch(getApiRoute(selected), {
+      const response = await fetch(getApiRoute(activeAgent), {
         method: 'POST',
         headers,
         body,
@@ -286,11 +296,11 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
       finalAssistantContent = accumulated
 
       // Détecter un renvoi vers un autre agent et l'attacher au message
-      const suggested = detectRoutingAgent(finalAssistantContent, agents, selected)
+      const suggested = detectRoutingAgent(finalAssistantContent, agents, activeAgent)
       if (suggested) {
         setMessages((prev) => {
           const last = prev[prev.length - 1]
-          return [...prev.slice(0, -1), { ...last, suggestedAgent: suggested }]
+          return [...prev.slice(0, -1), { ...last, suggestedAgent: suggested, originalQuery: content }]
         })
       }
     } catch {
@@ -367,7 +377,10 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
               {msg.suggestedAgent && (
                 <div className="ml-9">
                   <button
-                    onClick={() => selectAgent(msg.suggestedAgent!)}
+                    onClick={() => msg.originalQuery
+                      ? handleSwitchAndAsk(msg.suggestedAgent!, msg.originalQuery)
+                      : selectAgent(msg.suggestedAgent!)
+                    }
                     className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors font-medium shadow-sm"
                   >
                     <span className="text-sm leading-none">{getAgentIcon(msg.suggestedAgent)}</span>
