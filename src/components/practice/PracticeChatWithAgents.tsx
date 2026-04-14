@@ -36,10 +36,12 @@ type Props = {
 }
 
 const ICON_MAP: Record<string, string> = {
-  target: '🎯',
+  chart: '📈',
   search: '🔍',
   lightbulb: '💡',
   'pen-tool': '✏️',
+  // legacy
+  target: '📈',
 }
 
 function resolveIcon(icon: string | null): string {
@@ -50,6 +52,11 @@ function resolveIcon(icon: string | null): string {
 function getAgentLabel(selected: SelectedAgent): string {
   if (selected.type === 'coach') return 'Product Design Mentor'
   return selected.agent.custom_name ?? selected.agent.agent_templates.name
+}
+
+function getAgentIcon(selected: SelectedAgent): string {
+  if (selected.type === 'coach') return '🎯'
+  return resolveIcon(selected.agent.agent_templates.icon)
 }
 
 function getApiRoute(selected: SelectedAgent): string {
@@ -396,8 +403,9 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen((o) => !o)}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
               >
+                <span className="text-base leading-none">{getAgentIcon(selected)}</span>
                 <span>{getAgentLabel(selected)}</span>
                 <svg
                   width="13"

@@ -22,7 +22,7 @@ export const agentTemplates: AgentTemplateSeed[] = [
     name: 'The Product Manager',
     description:
       "Un Principal PM d'exception. Il challenge ta pensée business, questionne la faisabilité, anticipe les contraintes, et t'oblige à penser en impact mesurable avant de penser en features.",
-    icon: 'target',
+    icon: 'chart',
     position: 1,
     is_published: true,
     context_variables: [
