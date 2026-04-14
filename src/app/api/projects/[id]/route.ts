@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
 const UpdateProjectSchema = z.object({
@@ -52,8 +52,10 @@ export async function PUT(request: Request, { params }: Params) {
     return Response.json({ error: 'Données invalides', details: parsed.error.flatten() }, { status: 422 })
   }
 
-  // Vérifier que le projet appartient à l'utilisateur
-  const existing = await supabase
+  const service = createServiceClient()
+
+  // Vérifier que le projet appartient à l'utilisateur (via service pour bypasser RLS)
+  const existing = await service
     .from('projects')
     .select('id, brief_summary')
     .eq('id', id)
@@ -64,10 +66,11 @@ export async function PUT(request: Request, { params }: Params) {
     return Response.json({ error: 'Projet introuvable' }, { status: 404 })
   }
 
-  const updateResult = await supabase
+  const updateResult = await service
     .from('projects')
     .update(parsed.data)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single()
 
@@ -81,31 +84,10 @@ export async function PUT(request: Request, { params }: Params) {
     parsed.data.brief_summary !== undefined &&
     parsed.data.brief_summary !== existingRow.brief_summary
   ) {
-    await supabase
-      .from('project_agents')
-      .update({ compiled_prompt: null, prompt_version: supabase.rpc as unknown as number })
-      .eq('project_id', id)
-
-    // On utilise une requête raw pour incrémenter prompt_version
-    await supabase
+    await service
       .from('project_agents')
       .update({ compiled_prompt: null })
       .eq('project_id', id)
-
-    // Incrément de prompt_version via RPC ou en SQL direct
-    // Pour l'instant on le fait en deux passes
-    const agentsResult = await supabase
-      .from('project_agents')
-      .select('id, prompt_version')
-      .eq('project_id', id)
-
-    const agents = agentsResult.data as Array<{ id: string; prompt_version: number }> | null ?? []
-    for (const agent of agents) {
-      await supabase
-        .from('project_agents')
-        .update({ prompt_version: agent.prompt_version + 1 })
-        .eq('id', agent.id)
-    }
   }
 
   return Response.json({ project: updateResult.data })
