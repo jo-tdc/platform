@@ -218,6 +218,11 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
     const currentIcon = getAgentIcon(targetAgent)
     const currentLabel = getAgentLabel(targetAgent)
     const apiMessages: ChatMessageType[] = messages.map((m) => ({ role: m.role, content: m.content }))
+    // L'API Claude exige que le dernier message soit un message utilisateur
+    if (apiMessages.length > 0 && apiMessages[apiMessages.length - 1].role === 'assistant') {
+      const lastUserMsg = [...apiMessages].reverse().find((m) => m.role === 'user')
+      if (lastUserMsg) apiMessages.push({ role: 'user', content: lastUserMsg.content })
+    }
 
     setStreaming(true)
     setMessages((prev) => [...prev, { role: 'assistant', content: '', agentIcon: currentIcon, agentLabel: currentLabel }])
