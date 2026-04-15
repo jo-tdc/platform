@@ -8,7 +8,6 @@ type DisplayMessage = ChatMessageType & {
   agentIcon?: string
   agentLabel?: string
   suggestedAgent?: SelectedAgent
-  originalQuery?: string // question initiale qui a déclenché le routing
 }
 
 type PendingFile = {
@@ -211,11 +210,85 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
     textareaRef.current?.focus()
   }
 
-  // Switch vers un agent ET envoie automatiquement la question initiale à cet agent
-  function handleSwitchAndAsk(targetAgent: SelectedAgent, query: string) {
+  // Switch vers un agent et lui demande de répondre à l'historique existant (sans nouveau message utilisateur)
+  async function handleSwitchAndRespond(targetAgent: SelectedAgent) {
     setSelected(targetAgent)
     setDropdownOpen(false)
-    handleSend(query, [], targetAgent)
+
+    const currentIcon = getAgentIcon(targetAgent)
+    const currentLabel = getAgentLabel(targetAgent)
+    const apiMessages: ChatMessageType[] = messages.map((m) => ({ role: m.role, content: m.content }))
+
+    setStreaming(true)
+    setMessages((prev) => [...prev, { role: 'assistant', content: '', agentIcon: currentIcon, agentLabel: currentLabel }])
+
+    let finalAssistantContent = ''
+
+    try {
+      const response = await fetch(getApiRoute(targetAgent), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: apiMessages,
+          ...getContextPayload(targetAgent, projectId),
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Erreur inconnue' }))
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          return [...prev.slice(0, -1), { role: 'assistant', content: `Erreur : ${err.error ?? 'Erreur inconnue'}`, agentIcon: last?.agentIcon, agentLabel: last?.agentLabel }]
+        })
+        return
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) return
+
+      const decoder = new TextDecoder()
+      let accumulated = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        accumulated += decoder.decode(value, { stream: true })
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          return [...prev.slice(0, -1), { role: 'assistant', content: accumulated, agentIcon: last?.agentIcon, agentLabel: last?.agentLabel }]
+        })
+      }
+
+      finalAssistantContent = accumulated
+
+      const suggested = detectRoutingAgent(finalAssistantContent, agents, targetAgent)
+      if (suggested) {
+        setMessages((prev) => {
+          const last = prev[prev.length - 1]
+          return [...prev.slice(0, -1), { ...last, suggestedAgent: suggested }]
+        })
+      }
+    } catch {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1]
+        return [...prev.slice(0, -1), { role: 'assistant', content: 'Une erreur réseau est survenue. Réessaie.', agentIcon: last?.agentIcon, agentLabel: last?.agentLabel }]
+      })
+    } finally {
+      setStreaming(false)
+    }
+
+    if (sessionId && finalAssistantContent) {
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
+      fetch('/api/practice/chat/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          userMessage: lastUserMsg?.content ?? '',
+          assistantMessage: finalAssistantContent,
+        }),
+      }).catch(() => {/* ignore */})
+    }
   }
 
   async function handleSend(content: string, files: File[] = [], agentOverride?: SelectedAgent) {
@@ -301,7 +374,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
       if (suggested) {
         setMessages((prev) => {
           const last = prev[prev.length - 1]
-          return [...prev.slice(0, -1), { ...last, suggestedAgent: suggested, originalQuery: content }]
+          return [...prev.slice(0, -1), { ...last, suggestedAgent: suggested }]
         })
       }
     } catch {
@@ -378,10 +451,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
               {msg.suggestedAgent && (
                 <div className="ml-9">
                   <button
-                    onClick={() => msg.originalQuery
-                      ? handleSwitchAndAsk(msg.suggestedAgent!, msg.originalQuery)
-                      : selectAgent(msg.suggestedAgent!)
-                    }
+                    onClick={() => handleSwitchAndRespond(msg.suggestedAgent!)}
                     className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors font-medium shadow-sm"
                   >
                     <span className="text-sm leading-none">{getAgentIcon(msg.suggestedAgent)}</span>
