@@ -29,7 +29,7 @@ export default async function DashboardPage() {
             <div className="text-2xl mb-3">📚</div>
             <h2 className="font-semibold text-gray-900 mb-1">Supports de cours</h2>
             <p className="text-sm text-gray-500">
-              Suis le curriculum structuré semaine par semaine et développe tes compétences sur Figma.
+              Accède à l'ensemble des supports de cours du Bootcamp et développe tes compétences sur Figma.
             </p>
           </Link>
 
