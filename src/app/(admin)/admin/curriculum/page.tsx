@@ -172,10 +172,10 @@ function WeekForm({ initial, contentId, onSave, onCancel, loading }: {
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description: description || null, position, is_published: isPublished, content_id: contentId }) }} className="space-y-4">
       <Field label="Titre" required>
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="Semaine 1 — Découvrir le product design" />
+        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required className={inputClass} placeholder="Bloc 1 — Découvrir le product design" />
       </Field>
       <Field label="Description">
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={textareaClass} placeholder="Ce que l'apprenant va découvrir cette semaine..." />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={textareaClass} placeholder="Ce que l'apprenant va découvrir dans ce bloc..." />
       </Field>
       <Field label="Position">
         <input type="number" value={position} onChange={(e) => setPosition(Number(e.target.value))} min={1} required className={inputClass} />
@@ -585,7 +585,7 @@ export default function AdminCurriculumPage() {
   }
 
   async function handleDeleteWeek(id: string) {
-    if (!confirm('Supprimer cette semaine et tous ses modules/leçons ?')) return
+    if (!confirm('Supprimer ce bloc et tous ses modules/leçons ?')) return
     const res = await fetch(`/api/admin/weeks/${id}`, { method: 'DELETE' })
     if (res.ok) { setWeeks((p) => p.filter((w) => w.id !== id)); setModules((p) => p.filter((m) => m.week_id !== id)) }
   }
@@ -648,7 +648,7 @@ export default function AdminCurriculumPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Curriculum</h1>
-          <p className="text-sm text-gray-500 mt-1">{contents.length} contenu{contents.length !== 1 ? 's' : ''} — {weeks.length} semaine{weeks.length !== 1 ? 's' : ''} — {modules.length} module{modules.length !== 1 ? 's' : ''} — {lessons.length} leçon{lessons.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-500 mt-1">{contents.length} contenu{contents.length !== 1 ? 's' : ''} — {weeks.length} bloc{weeks.length !== 1 ? 's' : ''} — {modules.length} module{modules.length !== 1 ? 's' : ''} — {lessons.length} leçon{lessons.length !== 1 ? 's' : ''}</p>
         </div>
         <button
           onClick={() => setModal({ type: 'new-content' })}
@@ -799,12 +799,12 @@ export default function AdminCurriculumPage() {
         </Modal>
       )}
       {modal?.type === 'new-week' && (
-        <Modal title="Nouvelle semaine" onClose={() => setModal(null)}>
+        <Modal title="Nouveau bloc" onClose={() => setModal(null)}>
           <WeekForm contentId={modal.contentId} initial={{ position: modal.nextPosition }} onSave={handleCreateWeek} onCancel={() => setModal(null)} loading={loading} />
         </Modal>
       )}
       {modal?.type === 'edit-week' && (
-        <Modal title="Modifier la semaine" onClose={() => setModal(null)}>
+        <Modal title="Modifier le bloc" onClose={() => setModal(null)}>
           <WeekForm contentId={modal.week.content_id ?? ''} initial={modal.week} onSave={(d) => handleUpdateWeek(modal.week.id, d)} onCancel={() => setModal(null)} loading={loading} />
         </Modal>
       )}

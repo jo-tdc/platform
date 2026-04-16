@@ -146,7 +146,7 @@ export default async function LearnPage({ searchParams }: Props) {
               <div className="mb-6">
                 <p className="text-xs text-gray-400 mb-1">{activeContent.title}</p>
                 <h1 className="text-xl font-semibold text-gray-900">
-                  Semaine {activeWeek.position} — {activeWeek.title}
+                  Bloc {activeWeek.position} — {activeWeek.title}
                 </h1>
                 {activeWeek.description && (
                   <p className="text-sm text-gray-500 mt-1">{activeWeek.description}</p>
@@ -154,7 +154,7 @@ export default async function LearnPage({ searchParams }: Props) {
               </div>
 
               {modules.length === 0 ? (
-                <p className="text-sm text-gray-400">Aucun module disponible pour cette semaine.</p>
+                <p className="text-sm text-gray-400">Aucun module disponible pour ce bloc.</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {modules.map((mod, idx) => {
@@ -204,7 +204,7 @@ export default async function LearnPage({ searchParams }: Props) {
               )}
             </>
           ) : (
-            <p className="text-sm text-gray-400">Aucune semaine disponible pour ce contenu.</p>
+            <p className="text-sm text-gray-400">Aucun bloc disponible pour ce contenu.</p>
           )}
         </div>
       </div>

@@ -29,7 +29,7 @@ export default function CurriculumSidebar({ weeks, activeModuleSlug }: Props) {
           {weeks.map((week) => (
             <div key={week.id}>
               <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                Semaine {week.position} — {week.title}
+                Bloc {week.position} — {week.title}
               </p>
               <div className="space-y-1">
                 {week.modules.map((mod) => {
