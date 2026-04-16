@@ -27,9 +27,9 @@ export default async function DashboardPage() {
             className="group p-6 border border-gray-200 rounded-2xl hover:border-gray-400 transition-colors"
           >
             <div className="text-2xl mb-3">📚</div>
-            <h2 className="font-semibold text-gray-900 mb-1">Mode Apprendre</h2>
+            <h2 className="font-semibold text-gray-900 mb-1">Supports de cours</h2>
             <p className="text-sm text-gray-500">
-              Suis le curriculum structuré semaine par semaine.
+              Suis le curriculum structuré semaine par semaine et développe tes compétences sur Figma.
             </p>
           </Link>
 
@@ -38,7 +38,7 @@ export default async function DashboardPage() {
             className="group p-6 border border-gray-200 rounded-2xl hover:border-gray-400 transition-colors"
           >
             <div className="text-2xl mb-3">🛠️</div>
-            <h2 className="font-semibold text-gray-900 mb-1">Mode Pratiquer</h2>
+            <h2 className="font-semibold text-gray-900 mb-1">Pratique projet</h2>
             <p className="text-sm text-gray-500">
               Travaille sur tes projets avec des agents IA spécialisés.
             </p>

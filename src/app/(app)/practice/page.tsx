@@ -29,7 +29,7 @@ export default async function PracticePage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Mes projets</h1>
-            <p className="text-sm text-gray-500 mt-1">Mode Pratiquer — travaille sur de vrais projets avec des agents IA.</p>
+            <p className="text-sm text-gray-500 mt-1">Pratique projet — travaille sur de vrais projets avec des agents IA.</p>
           </div>
           <Link
             href="/practice/new"
