@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Navbar */}
       <header className="h-14 border-b border-gray-200 flex items-center px-6 gap-6 flex-shrink-0">
         <Link href="/dashboard" className="font-semibold text-gray-900 text-sm">
-          Plateforme
+          Home
         </Link>
 
         <nav className="flex items-center gap-1">
