@@ -125,7 +125,7 @@ export default async function LearnPage({ searchParams }: Props) {
                               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                           }`}
                         >
-                          <span className="text-xs font-mono text-gray-400 mt-0.5 flex-shrink-0">S{week.position}</span>
+                          <span className="text-xs font-mono text-gray-400 mt-0.5 flex-shrink-0">B{week.position}</span>
                           <span className="text-sm leading-snug">{week.title}</span>
                         </Link>
                       )
