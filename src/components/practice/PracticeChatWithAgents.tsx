@@ -107,6 +107,7 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
+  const [isDragging, setIsDragging] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -151,6 +152,32 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    // Ignorer si on passe sur un enfant
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setIsDragging(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      /\.(pdf|jpe?g|png|gif|webp|txt|md)$/i.test(f.name)
+    )
+    if (files.length === 0) return
+    const newPending: PendingFile[] = files.map((file) => ({
+      file,
+      previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+    }))
+    setPendingFiles((prev) => [...prev, ...newPending])
+    textareaRef.current?.focus()
+  }
 
   function handleInput() {
     const el = textareaRef.current
@@ -416,7 +443,21 @@ export default function PracticeChatWithAgents({ projectId, agents }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div
+      className="flex flex-col h-full w-full relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Overlay drag & drop */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/90 border-2 border-dashed border-gray-400 rounded-xl pointer-events-none">
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-700">Dépose ton fichier ici</p>
+            <p className="text-xs text-gray-400 mt-1">PDF, image, texte</p>
+          </div>
+        </div>
+      )}
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4">
         <div className="max-w-3xl mx-auto px-4 space-y-4">
