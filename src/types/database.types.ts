@@ -455,6 +455,87 @@ export type Database = {
         }
         Relationships: []
       }
+      mentors: {
+        Row: {
+          id: string
+          first_name: string
+          job_title: string | null
+          photo_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          first_name: string
+          job_title?: string | null
+          photo_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          first_name?: string
+          job_title?: string | null
+          photo_url?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      schedules: {
+        Row: {
+          id: string
+          cohort_id: string
+          starts_at: string
+          ends_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cohort_id: string
+          starts_at: string
+          ends_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cohort_id?: string
+          starts_at?: string
+          ends_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      schedule_blocks: {
+        Row: {
+          id: string
+          schedule_id: string
+          date: string
+          period: 'morning' | 'afternoon'
+          type: 'theory' | 'practice'
+          title: string
+          mentor_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          schedule_id: string
+          date: string
+          period: 'morning' | 'afternoon'
+          type: 'theory' | 'practice'
+          title: string
+          mentor_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          schedule_id?: string
+          date?: string
+          period?: 'morning' | 'afternoon'
+          type?: 'theory' | 'practice'
+          title?: string
+          mentor_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       trial_daily_usage: {
