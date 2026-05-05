@@ -3,6 +3,8 @@ import Link from 'next/link'
 const NAV = [
   { href: '/admin/cohorts', label: 'Utilisateurs' },
   { href: '/admin/curriculum', label: 'Curriculum' },
+  { href: '/admin/mentors', label: 'Mentors' },
+  { href: '/admin/planning', label: 'Planning' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -45,6 +45,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Pratiquer
             </Link>
           )}
+          {plans.includes('bootcamp') && (
+            <Link
+              href="/planning"
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Planning
+            </Link>
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
