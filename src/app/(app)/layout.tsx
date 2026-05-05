@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUserActivePlans, canAccessPracticeMode } from '@/lib/utils/access'
 
@@ -21,6 +21,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const plans = await getUserActivePlans(user.id)
   const isAdmin = plans.includes('admin') || plans.includes('editor')
   const hasPractice = canAccessPracticeMode(plans[0] ?? null)
+
+  // Vérifier si l'utilisateur a accès à un planning publié
+  const service = createServiceClient()
+  let hasPlanning = false
+  const { data: membership } = await service
+    .from('cohort_members').select('cohort_id').eq('user_id', user.id).single()
+  if (membership) {
+    const { data: sched } = await service
+      .from('schedules').select('id').eq('cohort_id', membership.cohort_id).eq('is_published', true).single()
+    hasPlanning = !!sched
+  }
 
   return (
     <div className="h-screen bg-white flex flex-col overflow-hidden">
@@ -45,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Pratiquer
             </Link>
           )}
-          {plans.includes('bootcamp') && (
+          {hasPlanning && (
             <Link
               href="/planning"
               className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"

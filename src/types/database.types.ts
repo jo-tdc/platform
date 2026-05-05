@@ -485,6 +485,7 @@ export type Database = {
           cohort_id: string
           starts_at: string
           ends_at: string
+          is_published: boolean
           created_at: string
         }
         Insert: {
@@ -492,6 +493,7 @@ export type Database = {
           cohort_id: string
           starts_at: string
           ends_at: string
+          is_published?: boolean
           created_at?: string
         }
         Update: {
@@ -499,6 +501,7 @@ export type Database = {
           cohort_id?: string
           starts_at?: string
           ends_at?: string
+          is_published?: boolean
           created_at?: string
         }
         Relationships: []

@@ -15,9 +15,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const service = await requireAdmin()
   if (!service) return Response.json({ error: 'Accès refusé' }, { status: 403 })
   const { id } = await params
-  const { starts_at, ends_at } = await req.json()
+  const { starts_at, ends_at, is_published } = await req.json()
+  const update: Record<string, unknown> = {}
+  if (starts_at !== undefined) update.starts_at = starts_at
+  if (ends_at !== undefined) update.ends_at = ends_at
+  if (is_published !== undefined) update.is_published = is_published
   const { data, error } = await service
-    .from('schedules').update({ starts_at, ends_at }).eq('id', id).select().single()
+    .from('schedules').update(update).eq('id', id).select().single()
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json({ schedule: data })
 }

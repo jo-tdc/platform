@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 
 type Cohort = { id: string; name: string; batch_number: number | null }
 type Mentor = { id: string; first_name: string; job_title: string | null; photo_url: string | null }
-type Schedule = { id: string; cohort_id: string; starts_at: string; ends_at: string }
+type Schedule = { id: string; cohort_id: string; starts_at: string; ends_at: string; is_published: boolean }
 type Block = {
   id: string
   schedule_id: string
@@ -197,6 +197,10 @@ export default function AdminPlanningPage() {
   const [editEndsAt, setEditEndsAt] = useState('')
   const [modal, setModal] = useState<{ date: string; period: 'morning' | 'afternoon'; block: Block | null } | null>(null)
   const [savingDates, setSavingDates] = useState(false)
+  const [togglingPublish, setTogglingPublish] = useState(false)
+  const [duplicateTargetId, setDuplicateTargetId] = useState('')
+  const [showDuplicate, setShowDuplicate] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -254,6 +258,37 @@ export default function AdminPlanningPage() {
     const data = await res.json()
     setSavingDates(false)
     if (res.ok) { setSchedule(data.schedule); setEditingDates(false) }
+  }
+
+  async function handleTogglePublish() {
+    if (!schedule) return
+    setTogglingPublish(true)
+    const res = await fetch(`/api/admin/schedules/${schedule.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_published: !schedule.is_published }),
+    })
+    const data = await res.json()
+    setTogglingPublish(false)
+    if (res.ok) setSchedule(data.schedule)
+  }
+
+  async function handleDuplicate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!schedule || !duplicateTargetId) return
+    setDuplicating(true)
+    const res = await fetch(`/api/admin/schedules/${schedule.id}/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_cohort_id: duplicateTargetId }),
+    })
+    const data = await res.json()
+    setDuplicating(false)
+    if (!res.ok) { alert(data.error); return }
+    setShowDuplicate(false)
+    setDuplicateTargetId('')
+    // Switch to the duplicated schedule
+    setSelectedCohortId(duplicateTargetId)
   }
 
   function handleBlockSaved(block: Block) {
@@ -366,7 +401,28 @@ export default function AdminPlanningPage() {
                   )}
                 </div>
 
-                {/* Navigation semaines */}
+                {/* Actions planning */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setDuplicateTargetId(''); setShowDuplicate(true) }}
+                    className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Dupliquer
+                  </button>
+                  <button
+                    onClick={handleTogglePublish}
+                    disabled={togglingPublish}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                      schedule.is_published
+                        ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                  >
+                    {togglingPublish ? '…' : schedule.is_published ? '✓ Publié' : 'Publier'}
+                  </button>
+                </div>
+
+              {/* Navigation semaines */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setWeekStart(addDays(weekStart, -7))}
@@ -448,6 +504,46 @@ export default function AdminPlanningPage() {
             </>
           )}
         </>
+      )}
+
+      {showDuplicate && schedule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-gray-900">Dupliquer le planning</h2>
+              <button onClick={() => setShowDuplicate(false)} className="text-gray-400 hover:text-gray-600">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">Copie ce planning (dates + tous les blocs) vers un autre batch. Le nouveau planning sera non publié.</p>
+            <form onSubmit={handleDuplicate} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Batch de destination *</label>
+                <select
+                  value={duplicateTargetId}
+                  onChange={(e) => setDuplicateTargetId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
+                >
+                  <option value="">— Sélectionner un batch —</option>
+                  {cohorts.filter((c) => c.id !== selectedCohortId).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.batch_number != null ? `Batch ${c.batch_number}` : c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setShowDuplicate(false)} className="flex-1 py-2 border border-gray-200 text-sm rounded-lg hover:bg-gray-50 transition-colors">
+                  Annuler
+                </button>
+                <button type="submit" disabled={duplicating || !duplicateTargetId} className="flex-1 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors">
+                  {duplicating ? 'Duplication…' : 'Dupliquer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {modal && schedule && (

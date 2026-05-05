@@ -19,6 +19,7 @@ export async function GET() {
     .from('schedules')
     .select('*')
     .eq('cohort_id', membership.cohort_id)
+    .eq('is_published', true)
     .single()
 
   if (!schedule) return Response.json({ schedule: null, blocks: [] })
