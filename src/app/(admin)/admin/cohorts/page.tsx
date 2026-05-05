@@ -37,14 +37,18 @@ function PlanBadge({ plan }: { plan: PlanValue | null }) {
   )
 }
 
-function PlanModal({ userId, currentPlans, onChanged, onClose }: {
+function PlanModal({ userId, currentPlans, currentCohortId, cohorts, onChanged, onClose }: {
   userId: string
   currentPlans: PlanValue[]
+  currentCohortId: string | null
+  cohorts: Cohort[]
   onChanged: (plans: PlanValue[]) => void
   onClose: () => void
 }) {
   const [selected, setSelected] = useState<PlanValue[]>(currentPlans)
+  const [cohortId, setCohortId] = useState<string>(currentCohortId ?? '')
   const [saving, setSaving] = useState(false)
+  const hasBootcamp = selected.includes('bootcamp')
 
   function toggle(plan: PlanValue) {
     setSelected((prev) =>
@@ -54,10 +58,14 @@ function PlanModal({ userId, currentPlans, onChanged, onClose }: {
 
   async function handleSave() {
     setSaving(true)
+    const body: Record<string, unknown> = { plans: selected }
+    if (hasBootcamp && cohortId) body.cohort_id = cohortId
+    else if (!hasBootcamp) body.cohort_id = null
+
     const res = await fetch(`/api/admin/users/${userId}/plans`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plans: selected }),
+      body: JSON.stringify(body),
     })
     if (res.ok) {
       onChanged(selected)
@@ -83,24 +91,42 @@ function PlanModal({ userId, currentPlans, onChanged, onClose }: {
 
         <div className="px-5 py-3 space-y-1">
           {PLANS.map((p) => (
-            <label key={p.value} className="flex items-center gap-3 py-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={selected.includes(p.value)}
-                onChange={() => toggle(p.value)}
-                className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
-              />
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.color}`}>
-                {p.label}
-              </span>
-            </label>
+            <div key={p.value}>
+              <label className="flex items-center gap-3 py-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(p.value)}
+                  onChange={() => toggle(p.value)}
+                  className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                />
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.color}`}>
+                  {p.label}
+                </span>
+              </label>
+              {p.value === 'bootcamp' && hasBootcamp && (
+                <div className="ml-7 mb-2">
+                  <select
+                    value={cohortId}
+                    onChange={(e) => setCohortId(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white"
+                  >
+                    <option value="">— Sélectionner un batch —</option>
+                    {cohorts.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.batch_number != null ? `Batch ${c.batch_number}` : c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           ))}
         </div>
 
         <div className="px-5 py-4 border-t border-gray-100">
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || (hasBootcamp && !cohortId)}
             className="w-full py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
           >
             {saving ? 'Sauvegarde…' : 'Sauvegarder'}
@@ -431,6 +457,8 @@ export default function AdminCohortsPage() {
           <PlanModal
             userId={u.id}
             currentPlans={u.plans}
+            currentCohortId={u.cohort_id}
+            cohorts={cohorts}
             onChanged={(plans) => handlePlansChanged(u.id, plans)}
             onClose={() => setPlanModalUserId(null)}
           />

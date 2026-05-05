@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 const Schema = z.object({
   plans: z.array(z.enum(['free', 'trial', 'bootcamp', 'pro', 'editor', 'admin', 'starter_pack'])),
+  cohort_id: z.string().uuid().nullable().optional(),
 })
 
 type Params = { params: Promise<{ id: string }> }
@@ -59,6 +60,18 @@ export async function PUT(request: Request, { params }: Params) {
     await service.from('user_plans').insert(
       toAdd.map((plan) => ({ user_id: id, plan, is_active: true }))
     )
+  }
+
+  // Gérer l'assignation de cohort si bootcamp sélectionné
+  const cohortId = parsed.data.cohort_id
+  if (newPlans.includes('bootcamp') && cohortId) {
+    // Retirer les memberships existants
+    await service.from('cohort_members').delete().eq('user_id', id)
+    // Ajouter le nouveau membership
+    await service.from('cohort_members').insert({ user_id: id, cohort_id: cohortId })
+  } else if (!newPlans.includes('bootcamp')) {
+    // Si bootcamp retiré, supprimer le membership
+    await service.from('cohort_members').delete().eq('user_id', id)
   }
 
   return Response.json({ ok: true, plans: newPlans })
