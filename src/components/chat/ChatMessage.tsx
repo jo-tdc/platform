@@ -30,13 +30,13 @@ function CopyableBlock({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative mb-3 group">
-      <pre ref={ref} className="bg-gray-900 text-gray-100 rounded-lg p-3 pb-8 text-xs font-mono overflow-x-auto">
+      <pre ref={ref} className="bg-gray-50 border border-gray-200 rounded-lg p-3 pb-8 text-xs font-mono overflow-x-auto text-gray-900">
         {children}
       </pre>
       <button
         onClick={handleCopy}
         title={copied ? 'Copié !' : 'Copier'}
-        className="absolute bottom-2 right-2 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+        className="absolute bottom-2 right-2 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors"
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
       </button>
