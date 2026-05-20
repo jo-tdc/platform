@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 
 type Props = {
@@ -8,7 +11,15 @@ type Props = {
 }
 
 export default function ChatMessage({ role, content, agentIcon, agentLabel }: Props) {
+  const [copied, setCopied] = useState(false)
   const isUser = role === 'user'
+
+  function handleCopy() {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   if (isUser) {
     return (
@@ -62,6 +73,24 @@ export default function ChatMessage({ role, content, agentIcon, agentLabel }: Pr
         >
           {content}
         </ReactMarkdown>
+
+        {/* Bouton copier */}
+        <button
+          onClick={handleCopy}
+          title={copied ? 'Copié !' : 'Copier'}
+          className="mt-2 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          {copied ? (
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <path d="M2 7.5L5.5 11L13 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+              <path d="M10 5V3.5A1.5 1.5 0 0 0 8.5 2h-5A1.5 1.5 0 0 0 2 3.5v5A1.5 1.5 0 0 0 3.5 10H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+          )}
+        </button>
       </div>
     </div>
   )
